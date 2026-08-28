@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "week": 2,
+  "date": "2026-01-19",
+  "title": "Hacking the Pachyderm",
+  "status": "approved",
+  "prompt_version": "extract@0.2",
+  "generated_at": "2026-08-28T18:48:15.576Z",
+  "lead_insight": {
+    "id": "insight-during-the-migration-crisis-the-team-discovered--780a71e6",
+    "claim": "During the migration crisis, the team discovered the system was running about 300-something IOPS and 12 fsyncs per second, a level of I/O performance the speaker compares to an SD card from 2004.",
+    "context": "War story about diagnosing why the system felt slow.",
+    "evidence": "so we had 300 and 12 Fsyncs per second, which is, I believe, about the same as an SD card from 2004..",
+    "timestamp": 965.76,
+    "slide_relation": "elaborates_slide",
+    "stance": "asserted",
+    "speaker": "instructor",
+    "verification": "partially_supported",
+    "tags": [
+      "performance",
+      "storage",
+      "iops"
+    ],
+    "redacted": false
+  },
+  "insights": [
+    {
+      "id": "insight-the-team-pushed-postgres-connections-up-to-4096--897b9765",
+      "claim": "The team pushed Postgres connections up to 4096 during the crisis, even though internet-scale database guidance recommends never going above 1024.",
+      "context": "Story about the 'add more workers' anti-pattern making Postgres contention worse.",
+      "evidence": "we have bunch of limit up twice, and we were running 4098 connections in postgres, and it turns out for internet scale databases, they still recommend literally never going above 10 24.",
+      "timestamp": 862.98,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "supported",
+      "tags": [
+        "postgres",
+        "connections",
+        "war-story"
+      ],
+      "redacted": false
+    }
+  ],
+  "build_ideas": [
+    {
+      "id": "build-fsync-iops-benchmark-your-storage-toy-780a71e6",
+      "title": "fsync/IOPS benchmark-your-storage toy",
+      "pitch": "Write a tiny script that measures real fsync/s and IOPS on whatever disk you run it on and compares the result against the '300 IOPS, 12 fsync/s, same as a 2004 SD card' number from the talk. It's a fun, quick way to get a gut feeling for how bad 'silently degraded' storage can look next to modern SSD numbers.",
+      "effort": "afternoon",
+      "you_will_learn": "How to directly measure fsync and IOPS throughput on a real disk and interpret what those numbers mean for a database-backed app",
+      "stack_hint": [
+        "fio or a small custom fsync loop",
+        "bash/python"
+      ],
+      "origin": {
+        "evidence": "so we had 300 and 12 Fsyncs per second, which is, I believe, about the same as an SD card from 2004..",
+        "timestamp": 965.76
+      },
+      "redacted": false
+    }
+  ],
+  "agent_prompts": [],
+  "callbacks": [],
+  "glossary": [
+    {
+      "term": "Sidekiq",
+      "definition": "A background job processing queue system used by Mastodon/Ruby apps.",
+      "timestamp": 0
+    },
+    {
+      "term": "NFS",
+      "definition": "Network File System, a protocol for accessing files over a network as if local.",
+      "timestamp": 0
+    },
+    {
+      "term": "fsync",
+      "definition": "A system call that forces data to be physically written to disk before returning, used as a measure of storage write performance.",
+      "timestamp": 0
+    },
+    {
+      "term": "NixOS",
+      "definition": "A Linux distribution built around declarative, reproducible system configuration.",
+      "timestamp": 0
+    },
+    {
+      "term": "Terraform Cloud",
+      "definition": "A hosted service for running declarative infrastructure-as-code (Terraform) workflows across cloud providers.",
+      "timestamp": 0
+    }
+  ],
+  "announcements": [],
+  "open_questions": [],
+  "corrections_log": [
+    {
+      "from": "NFL",
+      "to": "NFS",
+      "timestamp": 164.099
+    },
+    {
+      "from": "NFL",
+      "to": "NFS",
+      "timestamp": 438.36
+    },
+    {
+      "from": "one-year system",
+      "to": "NFS",
+      "timestamp": 454.62
+    },
+    {
+      "from": "sidekick cues",
+      "to": "Sidekiq queues",
+      "timestamp": 600.06
+    },
+    {
+      "from": "psychic cues",
+      "to": "Sidekiq queues",
+      "timestamp": 617.94
+    },
+    {
+      "from": "Portuguese",
+      "to": "Postgres",
+      "timestamp": 813.779
+    },
+    {
+      "from": "photographs",
+      "to": "Postgres",
+      "timestamp": 837.36
+    },
+    {
+      "from": "postgraduate",
+      "to": "Postgres",
+      "timestamp": 837.36
+    },
+    {
+      "from": "F sinks",
+      "to": "fsyncs",
+      "timestamp": 965.76
+    },
+    {
+      "from": "NYX OS",
+      "to": "NixOS",
+      "timestamp": 1963.44
+    },
+    {
+      "from": "next OS",
+      "to": "NixOS",
+      "timestamp": 1974.779
+    },
+    {
+      "from": "NYX OS",
+      "to": "NixOS",
+      "timestamp": 2013.84
+    },
+    {
+      "from": "next OS",
+      "to": "NixOS",
+      "timestamp": 2026.679
+    },
+    {
+      "from": "hepsna",
+      "to": "Hetzner",
+      "timestamp": 2099.58
+    },
+    {
+      "from": "NYX OS",
+      "to": "NixOS",
+      "timestamp": 2121.599
+    },
+    {
+      "from": "NYX OS",
+      "to": "NixOS",
+      "timestamp": 2145.96
+    },
+    {
+      "from": "hetz in a cloud",
+      "to": "Hetzner Cloud",
+      "timestamp": 2330.4
+    }
+  ]
+}

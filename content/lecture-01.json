@@ -1,0 +1,543 @@
+{
+  "schema_version": 1,
+  "week": 1,
+  "date": "2026-01-12",
+  "title": "Logs Told Us It Was DNS",
+  "status": "approved",
+  "prompt_version": "extract@0.2",
+  "generated_at": "2026-08-28T18:48:07.251Z",
+  "lead_insight": {
+    "id": "insight-the-eventual-fix-was-simply-deleting-a-custom-re-4a3fbe16",
+    "claim": "The eventual fix was simply deleting a custom reconnect-backoff override and reverting to gRPC's default reconnection timing, after months of investigation.",
+    "context": "Root cause of the SYN flood during metric service rollouts.",
+    "evidence": "And very surprisingly here, the fix for this just ended up being to delete these overrides that we set on the reconnection settings in grpc, instead of use, instead of overriding them to be like in hundreds of milliseconds, we deleted them and used the default values, which is like, you know, a few seconds for each of these, like, to, to wait for how long you should reconnect.",
+    "timestamp": 2152.619,
+    "slide_relation": "elaborates_slide",
+    "stance": "asserted",
+    "speaker": "instructor",
+    "verification": "partially_supported",
+    "tags": [
+      "grpc",
+      "root-cause",
+      "fix"
+    ],
+    "redacted": false
+  },
+  "insights": [
+    {
+      "id": "insight-a-discovered-kernel-edge-case-caused-reverse-pat-fa534401",
+      "claim": "A discovered kernel edge case caused reverse-path filtering to drop packets even in 'loose' mode, because loose mode still drops a packet if the receiving interface has no IP address assigned, and Cilium's pod-facing interfaces at the time had none.",
+      "context": "Explaining why conntrack counts differed between AWS's hypervisor and the node's own Linux conntrack table.",
+      "evidence": "there is this variable called No Adder, which is being, which is being said earlier in the function, if a packet is received on an interface that does not have an IP address set on it, the packet would be dropped because it hits reverse path filtering. And turns out that this was the case with, in our Cilium setup, and Cilium never really allocated an IP address to the pod secondary interface, because we don't really actually need it.",
+      "timestamp": 1488.179,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "supported",
+      "tags": [
+        "kernel",
+        "networking",
+        "cilium",
+        "reverse-path-filtering"
+      ],
+      "redacted": false
+    },
+    {
+      "id": "insight-throughput-and-bandwidth-graphs-looked-fine-well-4575bbe2",
+      "claim": "Throughput and bandwidth graphs looked fine (well under instance limits) even while the network was actually saturated, because averaged 15-second metrics can hide short-lived microbursts — the team only caught it using unaveraged, event-counting ENA driver metrics added just weeks before the incident.",
+      "context": "Investigating whether a networking issue was underlying the DNS errors.",
+      "evidence": "We actually see this type of problem a lot, and when we see this type of problem, what we usually do is look at measurements that are not subject to averaging, and in particular with networking, you can often get metrics from the network driver which just count events that happen, and these don't count, uh, these are not subject to averaging. And luckily, a few weeks before we started having this incident, we added support for elastic network adapter metrics in Datadog.",
+      "timestamp": 555.06,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "partially_supported",
+      "tags": [
+        "monitoring",
+        "aws",
+        "metrics"
+      ],
+      "redacted": false
+    },
+    {
+      "id": "insight-the-team-discovered-the-aws-conntrack-exhaustion-e7fe459a",
+      "claim": "The team discovered the AWS conntrack-exhaustion metric essentially by chance while scanning new ENA metrics, and only recognized its relevance because it happened to correlate exactly with the rollout window.",
+      "context": "Investigating a mismatch between bandwidth saturation and error timing on AWS instances.",
+      "evidence": "And at this point we had no idea what we were really looking for, ah, but we continued looking, and totally by chance, we discovered another metric called ENA conntrack exceeded, and we discovered this metric only because it was completely correlated with our rollout window.",
+      "timestamp": 684.959,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "supported",
+      "tags": [
+        "aws",
+        "conntrack",
+        "debugging"
+      ],
+      "redacted": false
+    }
+  ],
+  "build_ideas": [
+    {
+      "id": "build-grpc-load-balancer-reconnect-storm-demo-f8861858",
+      "title": "gRPC load-balancer reconnect-storm demo",
+      "pitch": "Build a tiny gRPC service with several backend pods and a client, then swap between pick_first and round_robin load balancing policies while tuning max_reconnect_backoff_ms to watch a SYN flood appear in real time via tcpdump/netstat counters. This directly recreates the subtle behavioral difference that caused the whole incident in the talk.",
+      "effort": "afternoon",
+      "you_will_learn": "How gRPC's client-side load balancing policies differ in background reconnection behavior and why tuning one setting for one policy can be dangerous under another",
+      "stack_hint": [
+        "gRPC",
+        "pick_first vs round_robin load balancing",
+        "tcpdump",
+        "conntrack"
+      ],
+      "origin": {
+        "evidence": "And this sort of explained where a SYN flood was coming from, because we had, you know, thousands of alerting engine pods, and they were all trying to reconnect every 300 millisecond to each metric service pod. And here we're seeing like tens of thousands of SYNs per second.",
+        "timestamp": 2140.98
+      },
+      "redacted": false
+    }
+  ],
+  "agent_prompts": [],
+  "callbacks": [],
+  "glossary": [
+    {
+      "term": "NodeLocal DNSCache",
+      "definition": "A per-node caching and forwarding DNS resolver in Kubernetes that sits between pods and cluster DNS to reduce query load.",
+      "timestamp": 0
+    },
+    {
+      "term": "conntrack (connection tracking)",
+      "definition": "A kernel/hypervisor table that tracks the state of network connections, used e.g. to implement stateful firewalls like AWS security groups.",
+      "timestamp": 0
+    },
+    {
+      "term": "reverse path filtering (rp_filter)",
+      "definition": "A kernel security feature that drops incoming packets if their reply wouldn't route back out the same (strict) or any (loose) interface, to prevent IP spoofing.",
+      "timestamp": 0
+    },
+    {
+      "term": "Martian packet",
+      "definition": "Kernel log term for a packet dropped by reverse path filtering because its source address doesn't match an expected route.",
+      "timestamp": 0
+    },
+    {
+      "term": "ENA (Elastic Network Adapter)",
+      "definition": "AWS's hypervisor-level network interface component that exposes low-level driver metrics like bandwidth and conntrack-exceeded counters.",
+      "timestamp": 0
+    },
+    {
+      "term": "pick_first / round_robin",
+      "definition": "Two built-in gRPC client-side load balancing policies with different connection-failure and reconnection behavior.",
+      "timestamp": 0
+    },
+    {
+      "term": "Cilium",
+      "definition": "The Container Network Interface (CNI) used to glue together node, pod, and AWS networking in Kubernetes clusters.",
+      "timestamp": 0
+    },
+    {
+      "term": "VPC Flow Logs",
+      "definition": "AWS logs capturing IP flow information (5-tuple, bytes, packets, TCP flags) for traffic on Elastic Network Interfaces.",
+      "timestamp": 0
+    }
+  ],
+  "announcements": [],
+  "open_questions": [],
+  "corrections_log": [
+    {
+      "from": "psyllium",
+      "to": "Cilium",
+      "timestamp": 93.24
+    },
+    {
+      "from": "node local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 235.86
+    },
+    {
+      "from": "node local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 249.12
+    },
+    {
+      "from": "rep 53",
+      "to": "Route 53",
+      "timestamp": 272.1
+    },
+    {
+      "from": "no local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 288.96
+    },
+    {
+      "from": "node local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 325.32
+    },
+    {
+      "from": "node local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 387.9
+    },
+    {
+      "from": "no local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 403.02
+    },
+    {
+      "from": "node local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 414.12
+    },
+    {
+      "from": "no local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 427.62
+    },
+    {
+      "from": "f tool s",
+      "to": "ethtool",
+      "timestamp": 604.5
+    },
+    {
+      "from": "node local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 618.899
+    },
+    {
+      "from": "DNA bandwidth exceeded",
+      "to": "ENA bandwidth exceeded",
+      "timestamp": 660.18
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 697.86
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 711.54
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 727.14
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 755.88
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 783.24
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 808.26
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 820.38
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 820.38
+    },
+    {
+      "from": "node local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 881.22
+    },
+    {
+      "from": "sin packets",
+      "to": "SYN packets",
+      "timestamp": 959.1
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1033.86
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1047.419
+    },
+    {
+      "from": "node local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 1061.7
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1061.7
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1061.7
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1075.26
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1075.26
+    },
+    {
+      "from": "sin flooding",
+      "to": "SYN flooding",
+      "timestamp": 1075.26
+    },
+    {
+      "from": "celium",
+      "to": "Cilium",
+      "timestamp": 1088.76
+    },
+    {
+      "from": "celium",
+      "to": "Cilium",
+      "timestamp": 1088.76
+    },
+    {
+      "from": "clamp operator",
+      "to": "Cilium operator",
+      "timestamp": 1088.76
+    },
+    {
+      "from": "celium",
+      "to": "Cilium",
+      "timestamp": 1113.84
+    },
+    {
+      "from": "claim agent",
+      "to": "Cilium agent",
+      "timestamp": 1113.84
+    },
+    {
+      "from": "celium",
+      "to": "Cilium",
+      "timestamp": 1138.799
+    },
+    {
+      "from": "CLM operator",
+      "to": "Cilium operator",
+      "timestamp": 1138.799
+    },
+    {
+      "from": "celium",
+      "to": "Cilium",
+      "timestamp": 1153.02
+    },
+    {
+      "from": "sealum",
+      "to": "Cilium",
+      "timestamp": 1153.02
+    },
+    {
+      "from": "width pair",
+      "to": "veth pair",
+      "timestamp": 1170
+    },
+    {
+      "from": "psyllium",
+      "to": "Cilium",
+      "timestamp": 1189.38
+    },
+    {
+      "from": "silium",
+      "to": "Cilium",
+      "timestamp": 1189.38
+    },
+    {
+      "from": "width pair",
+      "to": "veth pair",
+      "timestamp": 1205.88
+    },
+    {
+      "from": "silam",
+      "to": "Cilium",
+      "timestamp": 1220.88
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1248.179
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1248.179
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1248.179
+    },
+    {
+      "from": "sin packet",
+      "to": "SYN packet",
+      "timestamp": 1248.179
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1261.2
+    },
+    {
+      "from": "synac",
+      "to": "SYN-ACK",
+      "timestamp": 1261.2
+    },
+    {
+      "from": "clam",
+      "to": "Cilium",
+      "timestamp": 1275.059
+    },
+    {
+      "from": "sin packet",
+      "to": "SYN packet",
+      "timestamp": 1329.9
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1424.64
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1424.64
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1424.64
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1424.64
+    },
+    {
+      "from": "erpf",
+      "to": "RPF",
+      "timestamp": 1488.179
+    },
+    {
+      "from": "erpf",
+      "to": "RPF",
+      "timestamp": 1488.179
+    },
+    {
+      "from": "celium",
+      "to": "Cilium",
+      "timestamp": 1515.78
+    },
+    {
+      "from": "celium",
+      "to": "Cilium",
+      "timestamp": 1515.78
+    },
+    {
+      "from": "psyllium",
+      "to": "Cilium",
+      "timestamp": 1543.5
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1559.76
+    },
+    {
+      "from": "celium",
+      "to": "Cilium",
+      "timestamp": 1571.22
+    },
+    {
+      "from": "nerd local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 1583.4
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1597.5
+    },
+    {
+      "from": "contract",
+      "to": "conntrack",
+      "timestamp": 1597.5
+    },
+    {
+      "from": "sin flooding",
+      "to": "SYN flooding",
+      "timestamp": 1597.5
+    },
+    {
+      "from": "sin packets",
+      "to": "SYN packets",
+      "timestamp": 1622.279
+    },
+    {
+      "from": "rep 53",
+      "to": "Route 53",
+      "timestamp": 1673.279
+    },
+    {
+      "from": "rep 53",
+      "to": "Route 53",
+      "timestamp": 1737.779
+    },
+    {
+      "from": "no local DNS",
+      "to": "NodeLocal DNSCache",
+      "timestamp": 1824.6
+    },
+    {
+      "from": "rep 53",
+      "to": "Route 53",
+      "timestamp": 1824.6
+    },
+    {
+      "from": "your PC",
+      "to": "gRPC",
+      "timestamp": 1957.679
+    },
+    {
+      "from": "erpc",
+      "to": "gRPC",
+      "timestamp": 1981.5
+    },
+    {
+      "from": "jrpc",
+      "to": "gRPC",
+      "timestamp": 2034.179
+    },
+    {
+      "from": "sin flood",
+      "to": "SYN flood",
+      "timestamp": 2140.98
+    },
+    {
+      "from": "cents per second",
+      "to": "SYNs per second",
+      "timestamp": 2152.619
+    },
+    {
+      "from": "sin flood",
+      "to": "SYN flood",
+      "timestamp": 2152.619
+    }
+  ]
+}

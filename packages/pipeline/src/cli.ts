@@ -9,6 +9,7 @@
  * Stage bodies land one at a time via the `pipeline-stage` skill.
  */
 
+import "dotenv/config";
 import { Command } from "commander";
 import { PRODUCT_NAME, videoIdForWeek } from "./config.js";
 import * as fetchStage from "./stages/fetch.js";
@@ -19,6 +20,8 @@ import * as punctuateStage from "./stages/punctuate.js";
 import * as slidesStage from "./stages/slides.js";
 import * as extractStage from "./stages/extract.js";
 import * as verifyStage from "./stages/verify.js";
+import * as assembleStage from "./stages/assemble.js";
+import * as publishStage from "./stages/publish.js";
 import { readCache } from "./cache.js";
 import { loadAssignments } from "./glossary.js";
 import { SourceMeta } from "./types.js";
@@ -173,10 +176,38 @@ program
   });
 
 program
+  .command("assemble")
+  .argument("<week>", "week number")
+  .requiredOption("--title <title>", "human-written lecture title")
+  .requiredOption("--date <yyyy-mm-dd>", "lecture date")
+  .description("assemble the verified extract cache into content/lecture-NN.draft.json")
+  .action(async (weekArg: string, o: { title: string; date: string }) => {
+    const week = Number(weekArg);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(o.date)) {
+      console.error(`assemble: --date must be YYYY-MM-DD, got "${o.date}"`);
+      process.exitCode = 1;
+      return;
+    }
+    const videoId = videoIdForWeek(week);
+    const { data, path } = await assembleStage.run(videoId, week, { title: o.title, date: o.date });
+    console.log(
+      `wrote ${path}  lead + ${data.insights.length} insights  ${data.build_ideas.length} build ideas  ${data.agent_prompts.length} agent prompts  status=${data.status}`,
+    );
+    console.log(`Review it, then copy to content/lecture-${String(week).padStart(2, "0")}.json and hand-edit before approving.`);
+  });
+
+program
   .command("publish")
   .argument("<week>", "week number")
   .description("validate publication gates and upsert to Postgres")
-  .action(todo("publish"));
+  .action(async (weekArg: string) => {
+    const week = Number(weekArg);
+    const result = await publishStage.run(week);
+    console.log(
+      `week ${result.week} published  ${result.insightsPublished} insights  ${result.buildIdeasPublished} build ideas  ` +
+        `${result.agentPromptsPublished} agent prompts  ${result.droppedRedacted} dropped redacted  ${result.droppedUntested} dropped untested`,
+    );
+  });
 
 program
   .command("process")

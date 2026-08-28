@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "week": 9001,
+  "date": "2026-01-26",
+  "title": "So You Wanna Go Fast? (fixture: draft gate)",
+  "status": "draft",
+  "prompt_version": "extract@0.2",
+  "generated_at": "2026-08-28T18:48:17.974Z",
+  "lead_insight": {
+    "id": "insight-a-two-line-change-that-removed-a-single-unnecess-4b925d37",
+    "claim": "A two-line change that removed a single unnecessary string allocation on a byte-to-string-then-map-lookup path increased a production messaging server's throughput by two million messages per second.",
+    "context": "The speaker describes a contribution to the NATS messaging server that inlined a []byte-to-string conversion directly into a map lookup instead of using an intermediate string variable.",
+    "evidence": "So recently, there are, a while ago I guess, there was a contribution made to Nats, which was like a small two line change, and ended up increasing the throughput of the server by like two million messages a second, and all it did was remove an unnecessary string allocation.",
+    "timestamp": 1183.24,
+    "slide_relation": "elaborates_slide",
+    "stance": "attributed",
+    "speaker": "instructor",
+    "verification": "supported",
+    "tags": ["performance", "go", "memory", "war-story"],
+    "redacted": false
+  },
+  "insights": [
+    {
+      "id": "insight-defer-s-overhead-ballooned-and-then-was-dramatic-be75f03f",
+      "claim": "defer's overhead ballooned and then was dramatically improved in Go 1.2/1.3, crept back up again, and by the time of the talk had settled back to roughly the same ~40ns overhead as a mutex lock/unlock.",
+      "context": "Discussion of whether defer is still considered slow, a long-running community concern.",
+      "evidence": "I mean, it's, to start off with, the I was there's a lot of overhead, but then in like go one two and one three, it really improved dramatically, and it kind of crept back up a little bit, but today it's kind of back at where it was and go on three, which in this case, this is like with a mutex lock unlock, it's like 40 nanoseconds of overhead.",
+      "timestamp": 649.92,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "supported",
+      "tags": ["defer", "performance", "go-runtime"],
+      "redacted": false
+    }
+  ],
+  "build_ideas": [
+    {
+      "id": "build-escape-analysis-detective-toolkit-7254b312",
+      "title": "Escape-analysis detective toolkit",
+      "pitch": "Build a small CLI that runs go test -gcflags with -m, -l, and -S across a pair of benchmark files and diffs the inlining and assembly output side by side.",
+      "effort": "weekend",
+      "you_will_learn": "How to read Go compiler inlining decisions (-m), disable inlining (-l), and dump generated assembly (-S).",
+      "stack_hint": ["go test -bench", "gcflags -m/-l/-S", "pprof"],
+      "origin": {
+        "evidence": "So we can verify that with the dash M compiler flag of the GC flags, and sure enough, is two calls to sortable that number that are being in lined on line 84.",
+        "timestamp": 888.96
+      },
+      "redacted": false
+    }
+  ],
+  "agent_prompts": [
+    {
+      "id": "prompt-false-sharing-reproduction-and-fix-fd3e97c7",
+      "title": "False-sharing reproduction and fix",
+      "what_it_does": "Writes a Go benchmark demonstrating false sharing between two concurrently-accessed struct fields, then fixes it with cache-line padding.",
+      "prompt": "Write a Go benchmark package that demonstrates CPU cache false sharing between two int64 struct fields, then fix it with padding and compare throughput.",
+      "prerequisites": ["Go toolchain installed"],
+      "origin": {
+        "evidence": "So they end up thrashing that cache line, and so by adding these unused fields, we basically push those into their own cache lines.",
+        "timestamp": 1912.13
+      },
+      "tested": true,
+      "redacted": false
+    }
+  ],
+  "callbacks": [],
+  "glossary": [],
+  "announcements": [],
+  "open_questions": [],
+  "corrections_log": []
+}
