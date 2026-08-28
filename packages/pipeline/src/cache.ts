@@ -27,7 +27,12 @@ export function isCached(videoId: string, stage: string): boolean {
 export async function readCache<T>(
   videoId: string,
   stage: string,
-  schema: ZodType<T>,
+  // `ZodType<T>` alone also pins the schema's *input* type to T (its default
+  // type param), so a schema with a `.default(...)` field anywhere inside it
+  // — whose input and output types genuinely differ — makes T infer as a
+  // mismatched hybrid instead of the parsed (output) type. Pinning Def/Input
+  // to `any` here restricts inference to the output position only.
+  schema: ZodType<T, any, any>,
 ): Promise<T> {
   const raw = await readFile(cachePath(videoId, stage), "utf8");
   return schema.parse(JSON.parse(raw));
@@ -50,7 +55,7 @@ export async function writeCache<T>(
 export async function cached<T>(
   videoId: string,
   stage: string,
-  schema: ZodType<T>,
+  schema: ZodType<T, any, any>,
   force: boolean,
   produce: () => Promise<T>,
 ): Promise<{ data: T; fromCache: boolean }> {

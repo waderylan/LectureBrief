@@ -107,7 +107,10 @@ function buildArgs(o: CallOptions): string[] {
  * validation failure, appending the error so the model can correct itself.
  */
 export async function callJson<T>(
-  schema: ZodType<T>,
+  // See the comment on `readCache` in cache.ts: pinning only the output
+  // position avoids a mismatched inference for any schema with a `.default()`
+  // field inside it, where input and output types genuinely differ.
+  schema: ZodType<T, any, any>,
   o: CallOptions,
 ): Promise<CallResult<T>> {
   const started = Date.now();
