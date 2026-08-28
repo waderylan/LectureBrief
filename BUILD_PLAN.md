@@ -20,6 +20,8 @@ This supersedes ARCHITECTURE.md where they conflict. Deltas are listed in §1; e
 | §3 "do not build accounts / comments" | **Reversed** | Both are in scope. Everything else in §3 stays out — no payments, no search, no multi-course, no job queue, no mobile app, no email digests, no flashcards. |
 | §7.3 under $2/lecture | **Revisit later** | That budget assumed a mid-tier model. See §5. Irrelevant at demo scale; flagged, not solved. |
 | CSCI 599 framing | **Dropped** | Nothing in the product names a course, an instructor, or an institution. |
+| AD-1 hosted STT + AD-4 map-reduce | **Dropped for MVP** | Free YouTube auto-captions; single-pass extraction. Both are consequences of 38-minute talks replacing 2-hour lectures. See §5. |
+| §5 model: Opus 5 via API | **Replaced** | Headless Claude Code (`claude -p`) on Sonnet 5, behind a one-file seam. Zero marginal cash cost. |
 
 Everything else — the grounding contract, the three-way slide comparison, the redact-before-extract ordering, the verification pass, the tested-prompt gate, the coursework exclusion, generic attribution — carries over unchanged. Those are what make it not a generic summarizer.
 
@@ -33,9 +35,9 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 |---|---|---|
 | Pipeline | TypeScript CLI, `tsx`, `commander` | Runs on your laptop. One user: you. |
 | Audio fetch | `yt-dlp` then `ffmpeg` to 16kHz mono | Talks only; nothing recorded by hand. |
-| Transcription | Deepgram `nova-3` (keyterm prompting) | Bake-off on Day 1 against AssemblyAI. Keyterm boosting is AD-1's whole point — do not pick a provider without it. |
+| Transcription | YouTube auto-captions via `yt-dlp --write-auto-subs` | Free, already timestamped, no API key. Costs diarization and keyterm boosting — see §5. Reversible: the `transcribe` stage keeps a provider seam. |
 | Slide text | `unpdf` | Text PDFs. Falls back to a vision pass only if a specific deck is image-only. |
-| LLM | `@anthropic-ai/sdk`, `claude-opus-5` | Structured outputs via `zodOutputFormat` + `client.messages.parse()`. Effort tuned per stage (§5). |
+| LLM | Headless Claude Code (`claude -p`), Sonnet 5 | Bills against the operator's subscription, not API credits. Behind a one-file seam (`llm.ts`) so production swaps to the Anthropic SDK. Effort per stage (§5). |
 | Schema/validation | `zod` | One schema file shared by pipeline and site. This is the §9 data contract, in code. |
 | Site | Next.js App Router + Tailwind | Server components for reads, server actions for comments. |
 | DB | Postgres (Neon) + Drizzle | Free tier. Drizzle because migrations are plain SQL you can read. |
@@ -69,10 +71,10 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 ### Day 1 — Transcription
 
 - [x] Repo scaffold: pnpm workspace, the four packages above, `tsconfig`, `.env.example`.
-- [ ] `brief fetch <url>` writes audio to `.cache/<hash>/audio.wav` via `yt-dlp` + `ffmpeg`.
-- [ ] **Bake-off, ~45 minutes.** Ten minutes of one talk through Deepgram nova-3 and AssemblyAI. Count errors on jargon and on complete sentences. Clean conference audio makes this lower-stakes than a lecture hall — but do it anyway, because you are choosing the provider you'll later run on real institutional recordings, and the ranking you measure here is the one you'll cite.
-- [ ] Record the result in `BAKEOFF.md`. Two paragraphs. This is evidence for a future conversation, not ceremony.
-- [ ] `brief transcribe` with keyterm boosting from the glossary, diarization on, output cached and keyed by audio hash. **Re-running must never re-transcribe.**
+- [x] LLM adapter (`llm.ts`) over headless Claude Code, with zod validation and one retry. Verified: clean JSON, verbatim evidence spans, correct stance classification.
+- [ ] `brief fetch <url>` pulls auto-captions and audio via `yt-dlp`, caching by video id.
+- [ ] `brief transcribe` normalizes captions into the transcript shape — timestamps preserved, `speaker: "unclear"`. Output cached. **Re-running must never re-fetch.**
+- [ ] Read the raw transcript for the DNS talk and judge jargon quality against the `syllabus.md` glossary. If terms are mangled beyond what the correction pass can fix, record that and reconsider paid STT.
 
 *Gate: one full talk transcribed and cached, with timestamps and speaker labels.*
 
@@ -172,20 +174,25 @@ The last two are the only ones that measure whether the product works. The rest 
 
 ## 5. Model and cost
 
-`claude-opus-5` throughout, effort tuned per stage:
+**MVP runs on headless Claude Code**, not the API. `claude -p` bills against the operator's existing subscription, so marginal cash cost is zero and the model is Sonnet 5 rather than a budget tier. Production swaps to the Anthropic SDK; `packages/pipeline/src/llm.ts` exists to make that a one-file change.
 
 | Stage | Effort | Note |
 |---|---|---|
-| Correct terms | `low` | Mechanical substitution, constrained hard by the prompt. |
-| Map extract | `high` | ~10 calls per talk. Slides, glossary, and exclusions cached as a stable prefix. |
-| Reduce | `xhigh` | The hardest editorial judgment in the pipeline — dedup, ranking, lead insight, applied sections. Do not economize here. |
-| Verify | `low` | ~30 isolated calls. The Batch API halves this if latency stops mattering. |
+| Correct terms | `low` | Mechanical substitution. Emits a `{from,to,timestamp}` list, never a rewritten transcript — see AD-3. |
+| Extract | `medium` | **Single pass, not map-reduce.** See below. |
+| Reduce | `medium` | Merged into the extract call for talk-length input. |
+| Verify | `low` | ~30 isolated calls. Do not batch them to save money; isolation is what makes it a real check. |
 
-**Prompt caching is the real lever.** Slides, glossary, and exclusion list are identical across every map call for a talk — put them before the last `cache_control` breakpoint and the volatile window text after it. Verify with `usage.cache_read_input_tokens`; if it's zero across repeated runs, something in the prefix is varying.
+**Map-reduce is dropped for talk-length source material.** AD-4 windows the transcript because a 2-hour lecture is 25–30k tokens and recall sags in the middle. A 38-minute talk is ~7,600 tokens — windowing it yields three chunks, which is pure overhead and actively worse, since whole-talk context is exactly what the reduce stage needed windowing to recover. Reinstate windowing if the source ever returns to 2-hour lectures.
 
-**Cost:** roughly $0.50 of transcription plus a few dollars of inference per talk. Three talks for the demo is under $15 total, which is not worth optimizing. ARCHITECTURE.md's under-$2-per-lecture target assumed a mid-tier model and starts to matter at fifteen lectures times many courses. Flagged as a known future constraint, not solved now — the demo's job is to be good, not cheap.
+**Measured invocation overhead: ~22k tokens per call.** That is Claude Code's harness context and it is the floor. Stripping tools (`--allowed-tools ""`) saves ~10k; `--bare` would save more but refuses OAuth and requires an API key, defeating the point. Two flags are load-bearing rather than cosmetic:
 
-**Guardrail:** if any stage exceeds ten times its expected token count, fail loudly. A looping prompt bug is the realistic way this gets expensive.
+- `--strict-mcp-config --mcp-config '{"mcpServers":{}}'` — a configured-but-unreachable MCP server otherwise stalls every call for its full connect timeout.
+- `--setting-sources ""` — keeps the operator's global `CLAUDE.md` out of extraction context.
+
+**Transcription is free** (YouTube auto-captions), which removes the only non-token line item and the entire provider bake-off. What it costs is diarization and keyterm boosting. Diarization: AD-2 already permits `speaker: "unclear"` as the default. Keyterm boosting: the correction pass exists precisely to catch jargon, and the glossary in `syllabus.md` feeds it. **Watch for this in the first real output** — if course terms are mangled badly enough that correction can't recover them, that is the finding, and paid STT with keyterm boosting is the fix.
+
+**Guardrail:** if any stage exceeds ten times its expected token count, fail loudly. A looping prompt bug is the realistic way this gets expensive — in subscription usage rather than dollars, but expensive either way.
 
 ---
 
