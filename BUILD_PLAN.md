@@ -121,7 +121,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 
 ### Day 5 — Site, auth, comments (the big day)
 
-- [ ] Neon Postgres + Drizzle. Tables: `users`, `lectures`, `items` (insights, build ideas, and prompts, keyed by the persisted slug), `comments`.
+- [x] Neon Postgres + Drizzle. Tables: `users`, `lectures`, `items` (insights, build ideas, and prompts, keyed by the persisted slug), `comments`.
 - [ ] `brief publish <n>`: validates, **refuses anything not `approved`, drops every `redacted` item and every prompt with `tested: false`**, then upserts into Postgres. Three tests, one per exclusion. This is the promise the whole business rests on — make the failure impossible, not unlikely.
 - [ ] Auth.js v5, credentials, bcrypt, JWT session. Sign up, sign in, sign out. No password reset, no email verification, no roles beyond `user` and `admin`.
 - [ ] Routes: `/`, `/w/[week]`, `/w/[week]#[id]`, `/archive`, `/build`, `/prompts`. (`/t/[tag]` is the first thing to cut if the week gets tight.)

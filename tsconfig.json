@@ -4,6 +4,7 @@
     "lib": ["ES2023"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "outDir": "dist",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
@@ -13,7 +14,8 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@lecturebrief/schema": ["packages/schema/src/index.ts"]
+      "@lecturebrief/schema": ["packages/schema/src/index.ts"],
+      "@lecturebrief/db": ["packages/db/src/index.ts"]
     }
   },
   "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts"],
