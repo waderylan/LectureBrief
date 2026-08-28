@@ -46,10 +46,38 @@ export function videoIdForWeek(week: number): string {
 }
 
 /**
+ * Each talk's separately published slide deck (SOURCES.md), keyed by videoId
+ * to match every other stage cache. Feeds AD-5's three-way slide comparison.
+ */
+export const SLIDE_DECKS: Readonly<Record<string, string>> = {
+  zOkou37L2Wo:
+    "https://www.usenix.org/sites/default/files/conference/protected-files/sre23amer_slides_andrews.pdf",
+  qmt0ouHFgwY:
+    "https://www.usenix.org/sites/default/files/conference/protected-files/sre23amer_slides_weakly.pdf",
+  DJ4d_PZ6Gns: "https://files.speakerdeck.com/presentations/9f154cf3feb04d0092b6313bc33987de/go_fast.pdf",
+};
+
+export function slideDeckForVideo(videoId: string): string {
+  const url = SLIDE_DECKS[videoId];
+  if (!url) throw new Error(`No slide deck registered for ${videoId}. See SLIDE_DECKS in config.ts.`);
+  return url;
+}
+
+/**
  * Names that must never appear in published output. Kept as a list rather than
  * hardcoded so it survives a change of source material. See ARCHITECTURE.md AD-10.
+ *
+ * Full names only, not surnames alone — "Weakly" and "Treat" are ordinary
+ * English words, and a surname-only entry would flag unrelated sentences
+ * rather than an actual attribution.
  */
-export const NAME_BLOCKLIST: readonly string[] = [];
+export const NAME_BLOCKLIST: readonly string[] = [
+  "Hemanth Malla",
+  "Elijah Andrews",
+  "Hazel Weakly",
+  "Preston Doster",
+  "Tyler Treat",
+];
 
 /**
  * Fail loudly rather than silently burning money on a looping prompt bug.

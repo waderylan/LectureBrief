@@ -1,13 +1,16 @@
-# extract@0.1
+# extract@0.2
 
 Single-pass extraction over one full talk transcript. BUILD_PLAN.md §5 merges
 map and reduce into one call for talk-length input (~7-8k tokens) — this
 prompt does the whole job in one shot, not per-window.
 
-Slide text and the coursework exclusion list are **not** available yet
-(Day 4 work); do not ask for or expect them. `slide_relation` and
-`verification` are not requested from the model — the calling code fills
-those in as provisional placeholders until Day 4.
+Slide text and the coursework exclusion list (BUILD_PLAN.md Day 4) are part
+of the input now, alongside the transcript — the model assigns
+`slide_relation` and does its own exclusion check in this same call, because
+there is no separate "reduce" stage left to hand them to (Day 3 already
+merged that in). `verification` is still **not** requested from the model —
+the calling code fills it in as a provisional placeholder that the separate,
+isolated `verify` stage overwrites afterward.
 
 ## System
 
@@ -17,7 +20,7 @@ You are an extraction function for a technical talk transcript. You receive one 
 
 ```json
 {
-  "lead_insight": { "claim": "", "context": "", "evidence": "", "stance": "asserted", "speaker": "instructor", "tags": [] },
+  "lead_insight": { "claim": "", "context": "", "evidence": "", "slide_relation": "off_slides", "stance": "asserted", "speaker": "instructor", "tags": [] },
   "insights": [ /* same shape as lead_insight */ ],
   "build_ideas": [ { "title": "", "pitch": "", "effort": "weekend", "you_will_learn": "", "stack_hint": [], "origin": { "evidence": "" } } ],
   "agent_prompts": [ { "title": "", "what_it_does": "", "prompt": "", "prerequisites": [], "origin": { "evidence": "" } } ],
@@ -54,6 +57,16 @@ A single claim, story, opinion, correction, or pointer that: could be stated in 
 
 Exactly one. The single most worth-knowing thing from this talk. It must be a claim, not a topic label — "the talk covered incident response" is a failure; "a four-week DNS investigation ended with a three-line fix nobody expected" is what this field is for.
 
+### `slide_relation`
+
+You are given the slide deck's extracted text below (`SLIDE TEXT`), a jumbled bag of every line on every slide — treat it as *what topics and words were on slides*, not as ordered prose. For every insight, decide its relationship to that deck. This is a **three-way** judgment, not a yes/no:
+
+- `on_slides` — the slide already states this; the spoken words add nothing beyond what's printed.
+- `elaborates_slide` — a slide names the topic (a bullet, a term, a title), and the speaker adds something the slide does not contain: a story, a specific number, an opinion, a caveat, a correction, a "here's what actually happened." **This category holds most of the value in this product.** A talk that puts "prompt injection" on a bullet and then spends six minutes on a real incident is `elaborates_slide`, not `on_slides` — do not let topic-matching alone push it to `on_slides`.
+- `off_slides` — nothing on any slide names this at all.
+
+Judge this semantically, from meaning, never by matching exact words or phrases between the evidence and the slide text.
+
 ### `stance`
 
 - `asserted` — stated as settled fact ("MCP was released in November 2024")
@@ -87,6 +100,10 @@ Each needs: `title`, `what_it_does` (one sentence), `prompt` (the full self-cont
 
 Concrete and narrow beats open-ended: "write an adversarial test suite for X" beats "explore ideas about X."
 
+### Coursework exclusion
+
+Below (`COURSEWORK EXCLUSION LIST`) are descriptions of assignments from an unrelated synthetic course. Before including any `build_idea` or `agent_prompt`, check it against that list. If it substantially overlaps what an assignment asks for — the same deliverable shape, the same task, even if phrased differently — drop it. Judge this by what the idea would actually have someone do, not by whether it shares a keyword with an assignment description. When genuinely in doubt, drop it — there is no shortage of things to build, and a false exclusion costs nothing while a false inclusion risks reading as homework help.
+
 ### `glossary`
 
 Terms the talk uses that a listener might not know, with a one-line plain-English definition and the timestamp of first use. Only terms actually used in the transcript.
@@ -96,6 +113,12 @@ Terms the talk uses that a listener might not know, with a one-line plain-Englis
 This is a standalone talk, not one lecture in a weekly series — there is no "earlier week" to call back to and no course administration to announce. Leave `callbacks` and `announcements` empty unless the transcript itself contains a genuine forward/backward reference to another specific, named talk or a real scheduling/administrative remark. `open_questions` is for genuine unresolved questions the speaker raises and doesn't answer — leave it empty if there are none.
 
 ## User template
+
+SLIDE TEXT (raw extracted text from every slide in the deck, unordered prose — use it to judge `slide_relation`, never to quote):
+{{slides}}
+
+COURSEWORK EXCLUSION LIST (drop any build idea or agent prompt that substantially overlaps one of these):
+{{exclusions}}
 
 TRANSCRIPT:
 {{transcript}}

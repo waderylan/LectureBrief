@@ -6,10 +6,20 @@
  * nothing to recover. One structured call does what used to be map and
  * reduce together.
  *
- * `slide_relation` and `verification` are not requested from the model —
- * slide ingestion and the verification pass are Day 4 work (BUILD_PLAN.md
- * Day 3 vs Day 4 split). This stage fills both with provisional defaults
- * (`off_slides`, `supported`) that Day 4 overwrites. Nothing produced here is
+ * BUILD_PLAN.md Day 4 extends this call rather than adding a separate
+ * "reduce" or "slides" stage: the slide deck text (from the `slides` stage)
+ * and the coursework exclusion list (from `syllabus.md`'s assignment
+ * section) join the transcript as additional context in the same request,
+ * and the model assigns AD-5's three-way `slide_relation` and does its own
+ * exclusion self-check right here. There's no separate reduce call left to
+ * hand them to — Day 3 already merged that into this one. Verification
+ * stays genuinely separate (see `verify.ts`): isolation from this context is
+ * what makes it a real check.
+ *
+ * `verification` is still not requested from the model here — the `verify`
+ * stage is a later, isolated pass over the cached output of this one, and
+ * this stage fills the field with a provisional `supported` that `verify`
+ * overwrites (or drops the item entirely). Nothing produced here is
  * published: `status` stays `draft` until a human approves it.
  *
  * `timestamp` is never asked of the model for anything anchored to an
@@ -36,6 +46,7 @@ import {
   Origin,
   Stance,
   Speaker,
+  SlideRelation,
   Effort as BuildEffort,
   Callback,
   GlossaryEntry,
@@ -58,6 +69,7 @@ const RawInsight = z.object({
   claim: z.string().min(1),
   context: z.string(),
   evidence: z.string().min(1),
+  slide_relation: SlideRelation,
   stance: Stance,
   speaker: Speaker,
   tags: z.array(z.string()),
@@ -108,10 +120,14 @@ export const ExtractResult = z.object({
   openQuestions: z.array(z.string()),
   /** Items the model produced whose evidence wasn't found verbatim in the transcript. Dropped, not published. */
   droppedForMissingEvidence: z.number(),
+  /** Whether `verify.ts` has already rewritten this cache entry's `verification` fields. */
+  verified: z.boolean(),
+  /** Insights `verify.ts` dropped as `unsupported`. Zero until verify has run. */
+  droppedForUnsupported: z.number(),
 });
 export type ExtractResult = z.infer<typeof ExtractResult>;
 
-function normalizeWs(s: string): string {
+export function normalizeWs(s: string): string {
   return s.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
@@ -199,6 +215,7 @@ function timestampFor(evidence: string, index: TranscriptIndex): number | null {
 export async function run(
   videoId: string,
   punctuated: { text: string; segments: Segment[] },
+  context: { slidesText: string; exclusions: string },
   opts: { force?: boolean } = {},
 ): Promise<{ data: ExtractResult; fromCache: boolean }> {
   const previous = isCached(videoId, "extract")
@@ -209,7 +226,11 @@ export async function run(
     const prompt = await loadPrompt("extract");
     const { data: raw } = await callJson(RawExtraction, {
       system: prompt.system,
-      user: fill(prompt.template, { transcript: punctuated.text }),
+      user: fill(prompt.template, {
+        transcript: punctuated.text,
+        slides: context.slidesText,
+        exclusions: context.exclusions,
+      }),
       effort: EFFORT.extract,
     });
 
@@ -253,11 +274,10 @@ export async function run(
         context: i.context,
         evidence: i.evidence,
         timestamp: i.__ts,
-        // Provisional — Day 4's slide comparison assigns the real value.
-        slide_relation: "off_slides",
+        slide_relation: i.slide_relation,
         stance: i.stance,
         speaker: i.speaker,
-        // Provisional — Day 4's verification pass assigns the real value.
+        // Provisional — the separate `verify` stage assigns the real value.
         verification: "supported",
         tags: i.tags,
         redacted: false,
@@ -328,6 +348,8 @@ export async function run(
       announcements: raw.announcements.map((a) => Announcement.parse(a)),
       openQuestions: raw.open_questions,
       droppedForMissingEvidence: dropped,
+      verified: false,
+      droppedForUnsupported: 0,
     };
   });
 }

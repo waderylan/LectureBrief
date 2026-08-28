@@ -16,8 +16,11 @@ import * as transcribeStage from "./stages/transcribe.js";
 import * as correctStage from "./stages/correct.js";
 import * as redactStage from "./stages/redact.js";
 import * as punctuateStage from "./stages/punctuate.js";
+import * as slidesStage from "./stages/slides.js";
 import * as extractStage from "./stages/extract.js";
+import * as verifyStage from "./stages/verify.js";
 import { readCache } from "./cache.js";
+import { loadAssignments } from "./glossary.js";
 import { SourceMeta } from "./types.js";
 
 const program = new Command();
@@ -118,6 +121,20 @@ program
   });
 
 program
+  .command("slides")
+  .argument("<week>", "week number")
+  .description("extract slide deck text via unpdf")
+  .option("--force", "ignore cache")
+  .action(async (weekArg: string, o: { force?: boolean }) => {
+    const week = Number(weekArg);
+    const videoId = videoIdForWeek(week);
+    const { data, fromCache } = await slidesStage.run(videoId, o);
+    console.log(
+      `week ${week} (${videoId})  ${data.pageCount} pages  ${data.text.length} chars${fromCache ? "  (cached)" : "  (fresh)"}`,
+    );
+  });
+
+program
   .command("extract")
   .argument("<week>", "week number")
   .description("single-pass extraction from the punctuated transcript (BUILD_PLAN §5 merges map+reduce)")
@@ -126,7 +143,14 @@ program
     const week = Number(weekArg);
     const videoId = videoIdForWeek(week);
     const { punct } = await pipelineToPunctuated(videoId);
-    const { data, fromCache } = await extractStage.run(videoId, punct, { force: o.force });
+    const { data: slides } = await slidesStage.run(videoId);
+    const exclusions = await loadAssignments();
+    const { data, fromCache } = await extractStage.run(
+      videoId,
+      punct,
+      { slidesText: slides.text, exclusions },
+      { force: o.force },
+    );
     console.log(
       `week ${week} (${videoId})  lead + ${data.insights.length} insights  ${data.buildIdeas.length} build ideas  ${data.agentPrompts.length} agent prompts  ${data.droppedForMissingEvidence} dropped for non-verbatim evidence${fromCache ? "  (cached)" : ""}`,
     );
@@ -138,7 +162,15 @@ program
   .argument("<week>", "week number")
   .description("isolated grounding check per insight")
   .option("--force", "ignore cache")
-  .action(todo("verify"));
+  .action(async (weekArg: string, o: { force?: boolean }) => {
+    const week = Number(weekArg);
+    const videoId = videoIdForWeek(week);
+    const { data, fromCache } = await verifyStage.run(videoId, { force: o.force });
+    console.log(
+      `week ${week} (${videoId})  ${1 + data.insights.length} insights survive verification  ${data.droppedForUnsupported} dropped as unsupported${fromCache ? "  (already verified)" : ""}`,
+    );
+    console.log(JSON.stringify(data, null, 2));
+  });
 
 program
   .command("publish")
