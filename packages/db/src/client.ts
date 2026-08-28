@@ -6,7 +6,7 @@
 
 import { Pool } from "pg";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
-import * as dbSchema from "./schema.js";
+import * as dbSchema from "./schema";
 
 // Lazy on purpose: `packages/pipeline`'s CLI imports every stage module up
 // front (see `pipeline-stage`'s "registered in cli.ts" contract), including
@@ -48,4 +48,4 @@ function lazyForward<T extends object>(get: () => T): T {
 
 export const pool = lazyForward(getPool);
 export const db = lazyForward(getDb);
-export * as schema from "./schema.js";
+export * as schema from "./schema";
