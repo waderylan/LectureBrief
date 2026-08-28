@@ -95,7 +95,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 
 ### Day 3 — Extraction
 
-- [ ] Freeze `packages/schema` against ARCHITECTURE.md §9. Both sides import it. Add nothing speculative.
+- [x] Freeze `packages/schema` against ARCHITECTURE.md §9. Both sides import it. Add nothing speculative.
 - [ ] Map stage: one structured call per window, `zodOutputFormat`. Slides, glossary, and exclusion list go in the **stable prefix** so prompt caching covers all ~10 calls (§5).
 - [ ] Reduce stage: one call over all window outputs. Semantic dedup, cross-lecture ranking, `lead_insight` selection, callbacks, and the applied sections (§6).
 - [ ] `brief extract <n>` re-runs map and reduce from cache. **Under 60 seconds, or the prompt work on Day 6 doesn't happen.** This is the single highest-leverage engineering detail in the build.
