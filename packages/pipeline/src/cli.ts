@@ -14,6 +14,8 @@ import { PRODUCT_NAME } from "./config.js";
 import * as fetchStage from "./stages/fetch.js";
 import * as transcribeStage from "./stages/transcribe.js";
 import * as correctStage from "./stages/correct.js";
+import * as redactStage from "./stages/redact.js";
+import * as punctuateStage from "./stages/punctuate.js";
 import { readCache } from "./cache.js";
 import { SourceMeta } from "./types.js";
 
@@ -70,12 +72,40 @@ program
     for (const c of data.skipped) console.log(`  skipped  ${c.from} -> ${c.to}  (${c.reason})`);
   });
 
+async function pipelineTo(videoId: string, force?: boolean) {
+  const source = await readCache(videoId, "source", SourceMeta);
+  const { data: tr } = await transcribeStage.run(videoId, source);
+  const { data: cor } = await correctStage.run(videoId, tr);
+  const { data: red } = await redactStage.run(videoId, cor, { force });
+  return { source, tr, cor, red };
+}
+
 program
   .command("redact")
-  .argument("<week>", "week number")
-  .description("apply redactions.yml before anything downstream sees the text")
+  .argument("<url>", "talk URL or video id")
+  .description("apply redactions/<videoId>.yml before anything downstream sees the text")
   .option("--force", "ignore cache")
-  .action(todo("redact"));
+  .action(async (url: string, o: { force?: boolean }) => {
+    const videoId = fetchStage.parseVideoId(url);
+    const { red } = await pipelineTo(videoId, o.force);
+    console.log(
+      `${videoId}  ${red.removedSegments} segments dropped  ${red.removedStrings} strings removed  ${red.segments.length} segments remain`,
+    );
+  });
+
+program
+  .command("punctuate")
+  .argument("<url>", "talk URL or video id")
+  .description("insert sentence punctuation, guarded by a word-sequence invariant")
+  .option("--force", "ignore cache")
+  .action(async (url: string, o: { force?: boolean }) => {
+    const videoId = fetchStage.parseVideoId(url);
+    const { red } = await pipelineTo(videoId);
+    const { data, fromCache } = await punctuateStage.run(videoId, red, o);
+    console.log(
+      `${videoId}  ${data.spansTotal} spans  ${data.spansRejected} invariant-rejected  ${data.spansErrored} errored  ${fromCache ? "(cached)" : "(fresh)"}`,
+    );
+  });
 
 program
   .command("chunk")

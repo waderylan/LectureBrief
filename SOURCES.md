@@ -114,3 +114,17 @@ This is ARCHITECTURE.md §12's named failure mode: a term transcribed as a *diff
 **Second finding: no sentence punctuation.** Auto-captions carry capitalization but no periods or commas. Verbatim `evidence` spans will render as run-ons. AD-3 forbids the correction pass from restructuring sentences, so this needs an explicit decision on Day 2 rather than being quietly fixed.
 
 **Not yet reconsidering paid STT.** Both problems are recoverable downstream and the transcripts are otherwise clean and correctly timed. Revisit if the corrected output still reads badly.
+
+## Day 2 outcome
+
+Correction and punctuation run on all three talks (punctuation on the DNS talk; the other two are one command each when needed).
+
+| Talk | Substitutions applied | Occurrences |
+|---|---|---|
+| DNS | 28 | 79 |
+| Hachyderm | 13 | 17 |
+| Go Fast | 7 | 14 |
+
+**The punctuation pass found transcription errors the correction pass missed.** While inserting punctuation the model silently tried to fix `regress flows` → `egress flows`, `syn floating` → `syn flooding`, `timing at requests` → `timing out requests`, and `sports network namespace` → `pod's network namespace`. Every one of those fixes is correct. All were rejected anyway, because a fix made here is unlogged and outside AD-3's audited path.
+
+That is the invariant working as intended, and it is also a free source of correction candidates: anything the punctuation pass keeps trying to change is a transcription error worth adding to the glossary so the correction pass catches it first, in the log, where it can be reviewed.

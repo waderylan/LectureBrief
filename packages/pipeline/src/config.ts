@@ -13,6 +13,7 @@ export const PATHS = {
   content: "content",
   prompts: "prompts",
   syllabus: "syllabus.md",
+  redactions: "redactions",
 } as const;
 
 /** Model and effort per stage. See BUILD_PLAN.md §5. */
@@ -20,6 +21,7 @@ export const MODEL = "claude-opus-5" as const;
 
 export const EFFORT = {
   correct: "low",
+  punctuate: "low",
   extract: "high",
   reduce: "xhigh",
   verify: "low",
@@ -50,3 +52,6 @@ export const YT_DLP =
 
 /** Caption events are word fragments; group them up to this length. */
 export const SEGMENT_MAX_CHARS = 200;
+
+/** Characters per span sent to the punctuation pass. */
+export const PUNCTUATE_SPAN_CHARS = 1800;

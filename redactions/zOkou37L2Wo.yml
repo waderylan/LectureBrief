@@ -1,0 +1,12 @@
+# Redactions for the SREcon23 DNS talk.
+#
+# Applied BEFORE extraction ever sees the transcript (ARCHITECTURE.md §7.2).
+# Nothing here is off the record — this is a public talk — but the mechanism
+# must be exercised rather than assumed, so one real redaction is configured.
+
+ranges: []
+
+strings:
+  # AD-10: published content never names an individual speaker. The correction
+  # pass already declines to "fix" the misheard form; this removes it outright.
+  - "hey month"

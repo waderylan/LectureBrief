@@ -122,11 +122,18 @@ export async function callJson<T>(
             user: `${o.user}\n\nYour previous response was rejected: ${lastErr}\nReturn only valid JSON matching the schema.`,
           };
 
-    const stdout = await runClaude(
-      buildArgs(opts),
-      opts.user,
-      o.timeoutMs ?? 300_000,
-    );
+    // The CLI occasionally exits non-zero transiently. Retry with backoff
+    // before giving up, so a flaky invocation isn't mistaken for a bad answer.
+    let stdout = "";
+    for (let spawnTry = 0; ; spawnTry++) {
+      try {
+        stdout = await runClaude(buildArgs(opts), opts.user, o.timeoutMs ?? 300_000);
+        break;
+      } catch (e) {
+        if (spawnTry >= 2) throw e;
+        await new Promise((r) => setTimeout(r, 2000 * (spawnTry + 1)));
+      }
+    }
 
     const envelope = JSON.parse(stdout) as {
       result?: string;

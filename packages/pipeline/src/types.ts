@@ -35,3 +35,9 @@ export const Transcript = z.object({
   wordCount: z.number(),
 });
 export type Transcript = z.infer<typeof Transcript>;
+
+/** Shape produced by the correction stage, re-declared here to avoid a cycle. */
+export interface Corrected {
+  segments: Segment[];
+  text: string;
+}
