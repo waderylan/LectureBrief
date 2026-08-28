@@ -17,6 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "LectureBrief",
   description: "Weekly lecture recaps: what was said off the slides, and what to build from it.",
+  // Site-wide default — BUILD_PLAN.md Day 5: unlisted until the operator
+  // explicitly flips it (ARCHITECTURE.md §10). Every page also sets this
+  // itself, but the default here means a new route can never forget it.
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
