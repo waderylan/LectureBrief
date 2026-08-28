@@ -22,6 +22,14 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import type {
+  Announcement,
+  Callback,
+  GlossaryEntry,
+  Insight,
+  BuildIdea,
+  AgentPrompt,
+} from "@lecturebrief/schema";
 
 export const userRole = pgEnum("user_role", ["user", "admin"]);
 export const itemKind = pgEnum("item_kind", ["insight", "build_idea", "agent_prompt"]);
@@ -46,6 +54,17 @@ export const lectures = pgTable("lectures", {
   title: text("title").notNull(),
   promptVersion: text("prompt_version").notNull(),
   generatedAt: text("generated_at").notNull(),
+  // Lecture-level chrome (ARCHITECTURE.md §10 IA: callbacks, glossary,
+  // announcements sit below the applied sections; open_questions isn't
+  // rendered by §10 but travels with the rest of the document regardless).
+  // None of these are ever commented on, so — unlike insights/build_ideas/
+  // agent_prompts — they don't need their own `items` rows; storing them
+  // as arrays here keeps the site's read path Postgres-only rather than
+  // mixing in a read from the git-committed JSON at request time.
+  callbacks: jsonb("callbacks").notNull().$type<Callback[]>(),
+  glossary: jsonb("glossary").notNull().$type<GlossaryEntry[]>(),
+  announcements: jsonb("announcements").notNull().$type<Announcement[]>(),
+  openQuestions: jsonb("open_questions").notNull().$type<string[]>(),
   publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
 });
 export type Lecture = typeof lectures.$inferSelect;
@@ -70,7 +89,7 @@ export const items = pgTable("items", {
   // The full Insight | BuildIdea | AgentPrompt object, validated against
   // `@lecturebrief/schema` before insert. Shape varies by `kind`; the reader
   // re-parses with the matching schema.
-  data: jsonb("data").notNull(),
+  data: jsonb("data").notNull().$type<Insight | BuildIdea | AgentPrompt>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

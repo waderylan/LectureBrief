@@ -127,6 +127,10 @@ export async function run(week: number): Promise<PublishResult> {
         title: doc.title,
         promptVersion: doc.prompt_version,
         generatedAt: doc.generated_at,
+        callbacks: doc.callbacks,
+        glossary: doc.glossary,
+        announcements: doc.announcements,
+        openQuestions: doc.open_questions,
       })
       .onConflictDoUpdate({
         target: schema.lectures.week,
@@ -135,6 +139,10 @@ export async function run(week: number): Promise<PublishResult> {
           title: doc.title,
           promptVersion: doc.prompt_version,
           generatedAt: doc.generated_at,
+          callbacks: doc.callbacks,
+          glossary: doc.glossary,
+          announcements: doc.announcements,
+          openQuestions: doc.open_questions,
           publishedAt: new Date(),
         },
       });

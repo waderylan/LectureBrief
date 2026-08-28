@@ -13,6 +13,7 @@
     "migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
+    "@lecturebrief/schema": "workspace:*",
     "drizzle-orm": "^0.36.4",
     "pg": "^8.13.1"
   },
