@@ -59,16 +59,16 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 
 ### Day 0 — Sourcing and naming (half day, do this first)
 
-- [ ] Pick **3 source talks**, each with (a) audio you can pull, (b) a **separately published slide deck**, (c) dense story-driven delivery. Speakerdeck, the speaker's own site, and conference repos are where decks live. Without a deck there is no AD-5, and AD-5 is most of the value.
-- [ ] Confirm each one's license and terms permit what you're doing. Write the answer down per talk — you will be asked this in an instructor conversation.
-- [ ] Write a synthetic `syllabus.md` for the "course" these talks belong to: a glossary seed and 3–4 "assignment" descriptions for the coursework-exclusion list. The exclusion mechanism has to be exercised even though the course isn't real.
+- [x] Pick **3 source talks**, each with (a) audio you can pull, (b) a **separately published slide deck**, (c) dense story-driven delivery. Speakerdeck, the speaker's own site, and conference repos are where decks live. Without a deck there is no AD-5, and AD-5 is most of the value.
+- [x] Confirm each one's license and terms permit what you're doing. Write the answer down per talk — you will be asked this in an instructor conversation.
+- [x] Write a synthetic `syllabus.md` for the "course" these talks belong to: a glossary seed and 3–4 "assignment" descriptions for the coursework-exclusion list. The exclusion mechanism has to be exercised even though the course isn't real.
 - [ ] **Pick the name and domain.** ARCHITECTURE.md §10 says settle it before Day 5; with a site that has accounts, settle it now — it goes in the repo, the deploy target, and the auth flow. Nothing course-specific.
 
 *Gate: three talks with decks in hand. Do not start Day 1 without them.*
 
 ### Day 1 — Transcription
 
-- [ ] Repo scaffold: pnpm workspace, the four packages above, `tsconfig`, `.env.example`.
+- [x] Repo scaffold: pnpm workspace, the four packages above, `tsconfig`, `.env.example`.
 - [ ] `brief fetch <url>` writes audio to `.cache/<hash>/audio.wav` via `yt-dlp` + `ffmpeg`.
 - [ ] **Bake-off, ~45 minutes.** Ten minutes of one talk through Deepgram nova-3 and AssemblyAI. Count errors on jargon and on complete sentences. Clean conference audio makes this lower-stakes than a lecture hall — but do it anyway, because you are choosing the provider you'll later run on real institutional recordings, and the ranking you measure here is the one you'll cite.
 - [ ] Record the result in `BAKEOFF.md`. Two paragraphs. This is evidence for a future conversation, not ceremony.

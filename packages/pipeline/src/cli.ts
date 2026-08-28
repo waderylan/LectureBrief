@@ -1,0 +1,97 @@
+#!/usr/bin/env tsx
+/**
+ * The brief CLI. One entry point, run by hand, one operator.
+ *
+ * Every stage is its own subcommand so it can be re-run off cache without
+ * redoing the expensive steps above it. `brief extract` in particular must stay
+ * fast — see ARCHITECTURE.md AD-9.
+ *
+ * Stage bodies land one at a time via the `pipeline-stage` skill.
+ */
+
+import { Command } from "commander";
+import { PRODUCT_NAME } from "./config.js";
+
+const program = new Command();
+
+program
+  .name("brief")
+  .description(`${PRODUCT_NAME} pipeline — one lecture at a time`)
+  .version("0.0.0");
+
+const todo = (stage: string) => () => {
+  console.error(`${stage}: not implemented`);
+  process.exitCode = 1;
+};
+
+program
+  .command("fetch")
+  .argument("<url>", "talk URL")
+  .description("download audio and normalize to 16kHz mono wav")
+  .option("--force", "ignore cache")
+  .action(todo("fetch"));
+
+program
+  .command("transcribe")
+  .argument("<audio>", "path to audio file")
+  .description("hosted STT with keyterm boosting and diarization")
+  .option("--force", "ignore cache")
+  .action(todo("transcribe"));
+
+program
+  .command("correct")
+  .argument("<week>", "week number")
+  .description("glossary term substitution, non-destructive")
+  .option("--force", "ignore cache")
+  .action(todo("correct"));
+
+program
+  .command("redact")
+  .argument("<week>", "week number")
+  .description("apply redactions.yml before anything downstream sees the text")
+  .option("--force", "ignore cache")
+  .action(todo("redact"));
+
+program
+  .command("chunk")
+  .argument("<week>", "week number")
+  .description("split into overlapping windows")
+  .option("--force", "ignore cache")
+  .action(todo("chunk"));
+
+program
+  .command("extract")
+  .argument("<week>", "week number")
+  .description("map + reduce extraction from cache")
+  .option("--force", "ignore cache")
+  .action(todo("extract"));
+
+program
+  .command("reduce")
+  .argument("<week>", "week number")
+  .description("reduce window outputs into one document")
+  .option("--force", "ignore cache")
+  .action(todo("reduce"));
+
+program
+  .command("verify")
+  .argument("<week>", "week number")
+  .description("isolated grounding check per insight")
+  .option("--force", "ignore cache")
+  .action(todo("verify"));
+
+program
+  .command("publish")
+  .argument("<week>", "week number")
+  .description("validate publication gates and upsert to Postgres")
+  .action(todo("publish"));
+
+program
+  .command("process")
+  .argument("<url>", "talk URL")
+  .requiredOption("--slides <pdf>", "path to the slide deck")
+  .requiredOption("--week <n>", "week number")
+  .description("run every stage end to end")
+  .action(todo("process"));
+
+program.parse();
