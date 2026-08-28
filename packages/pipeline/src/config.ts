@@ -42,3 +42,11 @@ export const NAME_BLOCKLIST: readonly string[] = [];
  * See ARCHITECTURE.md §7.3.
  */
 export const COST_GUARD_MULTIPLIER = 10;
+
+/** Absolute path to the standalone yt-dlp binary. */
+export const YT_DLP =
+  process.env["YT_DLP"] ??
+  `${process.env["USERPROFILE"] ?? process.env["HOME"]}/.local/bin/yt-dlp.exe`;
+
+/** Caption events are word fragments; group them up to this length. */
+export const SEGMENT_MAX_CHARS = 200;

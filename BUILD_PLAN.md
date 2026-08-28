@@ -72,9 +72,9 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 
 - [x] Repo scaffold: pnpm workspace, the four packages above, `tsconfig`, `.env.example`.
 - [x] LLM adapter (`llm.ts`) over headless Claude Code, with zod validation and one retry. Verified: clean JSON, verbatim evidence spans, correct stance classification.
-- [ ] `brief fetch <url>` pulls auto-captions and audio via `yt-dlp`, caching by video id.
-- [ ] `brief transcribe` normalizes captions into the transcript shape — timestamps preserved, `speaker: "unclear"`. Output cached. **Re-running must never re-fetch.**
-- [ ] Read the raw transcript for the DNS talk and judge jargon quality against the `syllabus.md` glossary. If terms are mangled beyond what the correction pass can fix, record that and reconsider paid STT.
+- [x] `brief fetch <url>` pulls auto-captions and audio via `yt-dlp`, caching by video id.
+- [x] `brief transcribe` normalizes captions into the transcript shape — timestamps preserved, `speaker: "unclear"`. Output cached. **Re-running must never re-fetch.**
+- [x] Read the raw transcript for the DNS talk and judge jargon quality against the `syllabus.md` glossary. If terms are mangled beyond what the correction pass can fix, record that and reconsider paid STT.
 
 *Gate: one full talk transcribed and cached, with timestamps and speaker labels.*
 

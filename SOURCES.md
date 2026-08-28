@@ -89,3 +89,28 @@ Outside USENIX the hit rate collapses: Strange Loop publishes decks for some yea
 **SREcon — any year, Americas or EMEA — is the vein to mine. Treat everything else as a one-off.**
 
 **Open question:** all verified candidates are SRE/infrastructure, not ML/AI. The pipeline works the same either way, but the generated build ideas and agent prompts will be about distributed systems and incident response rather than agents and LLMs. Decide whether that suits the audience for the demo before Day 1.
+
+---
+
+## Transcript quality (measured, 2026-08-27)
+
+All three talks transcribed from YouTube auto-captions. No paid STT, no API key.
+
+| Talk | Words | Segments | Duration |
+|---|---|---|---|
+| DNS (Malla/Andrews) | 7,283 | 175 | 38 min |
+| Hachyderm (Weakly/Doster) | 6,746 | 163 | 40 min |
+| Go Fast (Treat) | 6,461 | 152 | 38 min |
+
+**Finding: domain jargon is substituted with real English words.** In the DNS talk, `conntrack` appears as **"contract" 25 times** — including "the contract table on the hypervisor," "we are saturating the contract," and "the Linux contract." Also `syn packet` → "sin packet", `SYN flooding` → "sin flooding", `ENA conntrack allowance exceeded` → "Ena contract exceeded", `m5.4xlarge` → "m54x larges".
+
+This is ARCHITECTURE.md §12's named failure mode: a term transcribed as a *different real word*, so nothing looks broken and the error survives review by anyone who wasn't in the room.
+
+**Consequence: the correction pass (AD-3) is mandatory, not defensive.** Without it every insight about the central mechanism of the talk is nonsense. Two things make it tractable:
+
+- The substitution is consistent, not random — "contract" always means `conntrack` in this transcript.
+- The correct terms are already in the `syllabus.md` glossary, which is what the correction pass consumes.
+
+**Second finding: no sentence punctuation.** Auto-captions carry capitalization but no periods or commas. Verbatim `evidence` spans will render as run-ons. AD-3 forbids the correction pass from restructuring sentences, so this needs an explicit decision on Day 2 rather than being quietly fixed.
+
+**Not yet reconsidering paid STT.** Both problems are recoverable downstream and the transcripts are otherwise clean and correctly timed. Revisit if the corrected output still reads badly.

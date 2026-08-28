@@ -11,6 +11,10 @@
 
 import { Command } from "commander";
 import { PRODUCT_NAME } from "./config.js";
+import * as fetchStage from "./stages/fetch.js";
+import * as transcribeStage from "./stages/transcribe.js";
+import { readCache } from "./cache.js";
+import { SourceMeta } from "./types.js";
 
 const program = new Command();
 
@@ -26,17 +30,27 @@ const todo = (stage: string) => () => {
 
 program
   .command("fetch")
-  .argument("<url>", "talk URL")
-  .description("download audio and normalize to 16kHz mono wav")
+  .argument("<url>", "talk URL or video id")
+  .description("download auto-captions and metadata")
   .option("--force", "ignore cache")
-  .action(todo("fetch"));
+  .action(async (url: string, o: { force?: boolean }) => {
+    const meta = await fetchStage.run(url, o);
+    console.log(`${meta.videoId}  ${Math.round(meta.durationSec / 60)} min  ${meta.title}`);
+  });
 
 program
   .command("transcribe")
-  .argument("<audio>", "path to audio file")
-  .description("hosted STT with keyterm boosting and diarization")
+  .argument("<url>", "talk URL or video id")
+  .description("normalize captions into the transcript shape")
   .option("--force", "ignore cache")
-  .action(todo("transcribe"));
+  .action(async (url: string, o: { force?: boolean }) => {
+    const videoId = fetchStage.parseVideoId(url);
+    const source = await readCache(videoId, "source", SourceMeta);
+    const { data, fromCache } = await transcribeStage.run(videoId, source, o);
+    console.log(
+      `${videoId}  ${data.wordCount} words  ${data.segments.length} segments  ${fromCache ? "(cached)" : "(fresh)"}`,
+    );
+  });
 
 program
   .command("correct")
