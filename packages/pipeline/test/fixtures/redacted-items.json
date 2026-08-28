@@ -7,7 +7,7 @@
   "prompt_version": "extract@0.2",
   "generated_at": "2026-08-28T18:48:17.974Z",
   "lead_insight": {
-    "id": "insight-a-two-line-change-that-removed-a-single-unnecess-4b925d37",
+    "id": "insight-fixture-9002-lead-000001",
     "claim": "A two-line change that removed a single unnecessary string allocation on a byte-to-string-then-map-lookup path increased a production messaging server's throughput by two million messages per second.",
     "context": "The speaker describes a contribution to the NATS messaging server that inlined a []byte-to-string conversion directly into a map lookup instead of using an intermediate string variable.",
     "evidence": "So recently, there are, a while ago I guess, there was a contribution made to Nats, which was like a small two line change, and ended up increasing the throughput of the server by like two million messages a second, and all it did was remove an unnecessary string allocation.",
@@ -21,7 +21,7 @@
   },
   "insights": [
     {
-      "id": "insight-defer-s-overhead-ballooned-and-then-was-dramatic-be75f03f",
+      "id": "insight-fixture-9002-defer-000002",
       "claim": "defer's overhead ballooned and then was dramatically improved in Go 1.2/1.3, crept back up again, and by the time of the talk had settled back to roughly the same ~40ns overhead as a mutex lock/unlock.",
       "context": "Discussion of whether defer is still considered slow, a long-running community concern.",
       "evidence": "I mean, it's, to start off with, the I was there's a lot of overhead, but then in like go one two and one three, it really improved dramatically, and it kind of crept back up a little bit, but today it's kind of back at where it was and go on three, which in this case, this is like with a mutex lock unlock, it's like 40 nanoseconds of overhead.",
@@ -34,7 +34,7 @@
       "redacted": false
     },
     {
-      "id": "insight-a-lock-free-channel-implementation-was-written-a-542431b4",
+      "id": "insight-fixture-9002-lockfree-000003",
       "claim": "A lock-free channel implementation was written and benchmarked but never merged into Go because the team wanted more justification for the added complexity relative to the performance gain.",
       "context": "Reference to Dmitry Vyukov's lock-free channel implementation attempt.",
       "evidence": "But there was Dmitriev ukhov had an implementation of lock free channels, it never made it in, and I think the go team was looking for further justification for the added complexity that brings.",
@@ -49,7 +49,7 @@
   ],
   "build_ideas": [
     {
-      "id": "build-escape-analysis-detective-toolkit-7254b312",
+      "id": "build-fixture-9002-escape-000004",
       "title": "Escape-analysis detective toolkit",
       "pitch": "Build a small CLI that runs go test -gcflags with -m, -l, and -S across a pair of benchmark files and diffs the inlining and assembly output side by side.",
       "effort": "weekend",
@@ -62,7 +62,7 @@
       "redacted": false
     },
     {
-      "id": "build-diy-distributed-reader-writer-mutex-with-cache-l-047cf127",
+      "id": "build-fixture-9002-rwmutex-000005",
       "title": "DIY distributed reader-writer mutex with cache-line padding",
       "pitch": "Implement a per-CPU sharded RWMutex from scratch in Go and benchmark it against sync.RWMutex at increasing core counts.",
       "effort": "weekend",
@@ -77,7 +77,7 @@
   ],
   "agent_prompts": [
     {
-      "id": "prompt-false-sharing-reproduction-and-fix-fd3e97c7",
+      "id": "prompt-fixture-9002-falsesharing-000006",
       "title": "False-sharing reproduction and fix",
       "what_it_does": "Writes a Go benchmark demonstrating false sharing between two concurrently-accessed struct fields, then fixes it with cache-line padding.",
       "prompt": "Write a Go benchmark package that demonstrates CPU cache false sharing between two int64 struct fields, then fix it with padding and compare throughput.",
@@ -90,7 +90,7 @@
       "redacted": false
     },
     {
-      "id": "prompt-interface-vs-struct-sort-benchmark-3570f8a3",
+      "id": "prompt-fixture-9002-sortbench-000007",
       "title": "Interface-vs-struct sort benchmark",
       "what_it_does": "Generates two Go benchmark files sorting 10 million elements and reports the performance gap.",
       "prompt": "Create a Go module with two benchmark files comparing sort.Interface implementations, one via a concrete struct and one via an interface wrapper.",

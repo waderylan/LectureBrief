@@ -1,4 +1,6 @@
 import type { LectureView } from "@/lib/lectures";
+import { getCommentsForItems } from "@/lib/lectures";
+import { auth } from "@/auth";
 import { InsightCard } from "./insight-card";
 import { BuildIdeaCard } from "./build-idea-card";
 import { PromptCard } from "./prompt-card";
@@ -10,7 +12,19 @@ import { SideProjectsLabel } from "./side-projects-label";
  * callbacks/glossary/announcements, which sit above the collapsed on-slides
  * recap. Reordering this "to improve it" is explicitly the thing not to do.
  */
-export function LecturePage({ lecture }: { lecture: LectureView }) {
+export async function LecturePage({ lecture }: { lecture: LectureView }) {
+  const session = await auth();
+  const signedIn = Boolean(session?.user);
+
+  const allItemIds = [
+    lecture.leadInsight.id,
+    ...lecture.offSlides.map((i) => i.id),
+    ...lecture.onSlides.map((i) => i.id),
+    ...lecture.buildIdeas.map((b) => b.id),
+    ...lecture.agentPrompts.map((p) => p.id),
+  ];
+  const commentsByItem = await getCommentsForItems(allItemIds);
+
   return (
     <article className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-12">
       <header className="flex flex-col gap-1">
@@ -21,14 +35,26 @@ export function LecturePage({ lecture }: { lecture: LectureView }) {
       </header>
 
       <section>
-        <InsightCard insight={lecture.leadInsight} week={lecture.week} lead />
+        <InsightCard
+          insight={lecture.leadInsight}
+          week={lecture.week}
+          lead
+          comments={commentsByItem.get(lecture.leadInsight.id) ?? []}
+          signedIn={signedIn}
+        />
       </section>
 
       {lecture.offSlides.length > 0 && (
         <section className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Off the slides</h2>
           {lecture.offSlides.map((insight) => (
-            <InsightCard key={insight.id} insight={insight} week={lecture.week} />
+            <InsightCard
+              key={insight.id}
+              insight={insight}
+              week={lecture.week}
+              comments={commentsByItem.get(insight.id) ?? []}
+              signedIn={signedIn}
+            />
           ))}
         </section>
       )}
@@ -39,7 +65,15 @@ export function LecturePage({ lecture }: { lecture: LectureView }) {
         {lecture.buildIdeas.length === 0 ? (
           <p className="text-sm text-zinc-500">No build ideas for this one — not every talk warrants one.</p>
         ) : (
-          lecture.buildIdeas.map((idea) => <BuildIdeaCard key={idea.id} idea={idea} week={lecture.week} />)
+          lecture.buildIdeas.map((idea) => (
+            <BuildIdeaCard
+              key={idea.id}
+              idea={idea}
+              week={lecture.week}
+              comments={commentsByItem.get(idea.id) ?? []}
+              signedIn={signedIn}
+            />
+          ))
         )}
       </section>
 
@@ -49,7 +83,15 @@ export function LecturePage({ lecture }: { lecture: LectureView }) {
         {lecture.agentPrompts.length === 0 ? (
           <p className="text-sm text-zinc-500">No tested prompts for this one yet.</p>
         ) : (
-          lecture.agentPrompts.map((prompt) => <PromptCard key={prompt.id} prompt={prompt} week={lecture.week} />)
+          lecture.agentPrompts.map((prompt) => (
+            <PromptCard
+              key={prompt.id}
+              prompt={prompt}
+              week={lecture.week}
+              comments={commentsByItem.get(prompt.id) ?? []}
+              signedIn={signedIn}
+            />
+          ))
         )}
       </section>
 
@@ -96,7 +138,13 @@ export function LecturePage({ lecture }: { lecture: LectureView }) {
           <summary className="cursor-pointer text-xl font-semibold">On the slides</summary>
           <div className="flex flex-col gap-4 pt-4">
             {lecture.onSlides.map((insight) => (
-              <InsightCard key={insight.id} insight={insight} week={lecture.week} />
+              <InsightCard
+                key={insight.id}
+                insight={insight}
+                week={lecture.week}
+                comments={commentsByItem.get(insight.id) ?? []}
+                signedIn={signedIn}
+              />
             ))}
           </div>
         </details>

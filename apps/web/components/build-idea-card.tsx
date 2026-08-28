@@ -1,5 +1,7 @@
 import type { BuildIdea } from "@lecturebrief/schema";
+import type { CommentView } from "@/app/actions/comments";
 import { CopyButton } from "./copy-button";
+import { CommentThread } from "./comment-thread";
 
 const EFFORT_LABEL: Record<BuildIdea["effort"], string> = {
   afternoon: "Afternoon",
@@ -11,7 +13,17 @@ const EFFORT_LABEL: Record<BuildIdea["effort"], string> = {
  * Effort must be visible before the reader commits attention —
  * ARCHITECTURE.md §10 — so it's the first thing in the card, not a footnote.
  */
-export function BuildIdeaCard({ idea, week }: { idea: BuildIdea; week: number }) {
+export function BuildIdeaCard({
+  idea,
+  week,
+  comments = [],
+  signedIn = false,
+}: {
+  idea: BuildIdea;
+  week: number;
+  comments?: CommentView[];
+  signedIn?: boolean;
+}) {
   return (
     <article id={idea.id} className="scroll-mt-20 flex flex-col gap-2 rounded border p-4">
       <span className="w-fit rounded-full border px-2 py-0.5 text-xs uppercase tracking-wide text-zinc-500">
@@ -33,6 +45,7 @@ export function BuildIdeaCard({ idea, week }: { idea: BuildIdea; week: number })
       <div>
         <CopyButton label="Copy link" text={`/w/${week}#${idea.id}`} absolute />
       </div>
+      <CommentThread itemId={idea.id} initialComments={comments} signedIn={signedIn} />
     </article>
   );
 }

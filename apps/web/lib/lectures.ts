@@ -6,8 +6,9 @@
  */
 
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@lecturebrief/db";
+import type { CommentView } from "@/app/actions/comments";
 import { Insight, BuildIdea, AgentPrompt } from "@lecturebrief/schema";
 
 export interface LectureView {
@@ -147,4 +148,30 @@ export async function getAllAgentPrompts(): Promise<AgentPromptWithWeek[]> {
     .where(eq(schema.items.kind, "agent_prompt"))
     .orderBy(desc(schema.items.lectureWeek), schema.items.orderIndex);
   return rows.map((r) => ({ week: r.week, prompt: AgentPrompt.parse(r.data) }));
+}
+
+/** Comments anchored to a specific item id — ARCHITECTURE.md §14's planned direction, brought forward. */
+export async function getCommentsForItems(itemIds: string[]): Promise<Map<string, CommentView[]>> {
+  const map = new Map<string, CommentView[]>();
+  if (itemIds.length === 0) return map;
+
+  const rows = await db
+    .select({
+      id: schema.comments.id,
+      itemId: schema.comments.itemId,
+      body: schema.comments.body,
+      createdAt: schema.comments.createdAt,
+      authorEmail: schema.users.email,
+    })
+    .from(schema.comments)
+    .innerJoin(schema.users, eq(schema.comments.userId, schema.users.id))
+    .where(inArray(schema.comments.itemId, itemIds))
+    .orderBy(schema.comments.createdAt);
+
+  for (const r of rows) {
+    const list = map.get(r.itemId) ?? [];
+    list.push({ id: r.id, body: r.body, authorEmail: r.authorEmail, createdAt: r.createdAt.toISOString() });
+    map.set(r.itemId, list);
+  }
+  return map;
 }

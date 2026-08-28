@@ -7,7 +7,7 @@
   "prompt_version": "extract@0.2",
   "generated_at": "2026-08-28T18:48:17.974Z",
   "lead_insight": {
-    "id": "insight-a-two-line-change-that-removed-a-single-unnecess-4b925d37",
+    "id": "insight-fixture-9004-lead-000001",
     "claim": "A two-line change that removed a single unnecessary string allocation on a byte-to-string-then-map-lookup path increased a production messaging server's throughput by two million messages per second.",
     "context": "The speaker describes a contribution to the NATS messaging server that inlined a []byte-to-string conversion directly into a map lookup instead of using an intermediate string variable.",
     "evidence": "So recently, there are, a while ago I guess, there was a contribution made to Nats, which was like a small two line change, and ended up increasing the throughput of the server by like two million messages a second, and all it did was remove an unnecessary string allocation.",
@@ -21,7 +21,7 @@
   },
   "insights": [
     {
-      "id": "insight-defer-s-overhead-ballooned-and-then-was-dramatic-be75f03f",
+      "id": "insight-fixture-9004-defer-000002",
       "claim": "defer's overhead ballooned and then was dramatically improved in Go 1.2/1.3, crept back up again, and by the time of the talk had settled back to roughly the same ~40ns overhead as a mutex lock/unlock.",
       "context": "Discussion of whether defer is still considered slow, a long-running community concern.",
       "evidence": "I mean, it's, to start off with, the I was there's a lot of overhead, but then in like go one two and one three, it really improved dramatically, and it kind of crept back up a little bit, but today it's kind of back at where it was and go on three, which in this case, this is like with a mutex lock unlock, it's like 40 nanoseconds of overhead.",

@@ -126,7 +126,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 - [x] Auth.js v5, credentials, bcrypt, JWT session. Sign up, sign in, sign out. No password reset, no email verification, no roles beyond `user` and `admin`.
 - [x] Routes: `/`, `/w/[week]`, `/w/[week]#[id]`, `/archive`, `/build`, `/prompts`. (`/t/[tag]` is the first thing to cut if the week gets tight.)
 - [x] Lecture page IA exactly as ARCHITECTURE.md §10 orders it: lead insight, then off the slides, then build this, then prompts, then callbacks, glossary, announcements, and **on the slides collapsed at the bottom**. Do not merge it chronologically.
-- [ ] Comments anchored to a specific item id, not to a weekly thread. Signed-in users only. Server action, optimistic render.
+- [x] Comments anchored to a specific item id, not to a weekly thread. Signed-in users only. Server action, optimistic render.
 - [ ] Copy-link on every item; copy-text on every prompt body, clean, **working on mobile**. This is the most-used control on the site.
 - [x] Standing label on the build and prompt sections, on `/build`, on `/prompts`, and on a deep link to a single item: *Side projects for extended learning. Not for coursework or assignments.* Always rendered, never conditional on a flag.
 - [ ] `noindex` in meta and `robots.txt`. Deploy. Ugly is fine today.

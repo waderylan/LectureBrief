@@ -7,7 +7,7 @@
   "prompt_version": "extract@0.2",
   "generated_at": "2026-08-28T18:48:17.974Z",
   "lead_insight": {
-    "id": "insight-a-two-line-change-that-removed-a-single-unnecess-4b925d37",
+    "id": "insight-fixture-9003-lead-000001",
     "claim": "A two-line change that removed a single unnecessary string allocation on a byte-to-string-then-map-lookup path increased a production messaging server's throughput by two million messages per second.",
     "context": "The speaker describes a contribution to the NATS messaging server that inlined a []byte-to-string conversion directly into a map lookup instead of using an intermediate string variable.",
     "evidence": "So recently, there are, a while ago I guess, there was a contribution made to Nats, which was like a small two line change, and ended up increasing the throughput of the server by like two million messages a second, and all it did was remove an unnecessary string allocation.",
@@ -23,7 +23,7 @@
   "build_ideas": [],
   "agent_prompts": [
     {
-      "id": "prompt-false-sharing-reproduction-and-fix-fd3e97c7",
+      "id": "prompt-fixture-9003-falsesharing-000002",
       "title": "False-sharing reproduction and fix",
       "what_it_does": "Writes a Go benchmark demonstrating false sharing between two concurrently-accessed struct fields, then fixes it with cache-line padding.",
       "prompt": "Write a Go benchmark package that demonstrates CPU cache false sharing between two int64 struct fields, then fix it with padding and compare throughput.",
@@ -36,7 +36,7 @@
       "redacted": false
     },
     {
-      "id": "prompt-interface-vs-struct-sort-benchmark-3570f8a3",
+      "id": "prompt-fixture-9003-sortbench-000003",
       "title": "Interface-vs-struct sort benchmark",
       "what_it_does": "Generates two Go benchmark files sorting 10 million elements and reports the performance gap.",
       "prompt": "Create a Go module with two benchmark files comparing sort.Interface implementations, one via a concrete struct and one via an interface wrapper.",

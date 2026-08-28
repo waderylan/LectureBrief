@@ -1,5 +1,7 @@
 import type { Insight } from "@lecturebrief/schema";
+import type { CommentView } from "@/app/actions/comments";
 import { CopyButton } from "./copy-button";
+import { CommentThread } from "./comment-thread";
 
 const STANCE_LABEL: Record<Insight["stance"], string> = {
   asserted: "Said",
@@ -14,7 +16,19 @@ const STANCE_LABEL: Record<Insight["stance"], string> = {
  * cards: an insight's fields (evidence, stance, verification) don't apply to
  * either of those.
  */
-export function InsightCard({ insight, week, lead = false }: { insight: Insight; week: number; lead?: boolean }) {
+export function InsightCard({
+  insight,
+  week,
+  lead = false,
+  comments = [],
+  signedIn = false,
+}: {
+  insight: Insight;
+  week: number;
+  lead?: boolean;
+  comments?: CommentView[];
+  signedIn?: boolean;
+}) {
   return (
     <article
       id={insight.id}
@@ -41,6 +55,7 @@ export function InsightCard({ insight, week, lead = false }: { insight: Insight;
       <div>
         <CopyButton label="Copy link" text={`/w/${week}#${insight.id}`} absolute />
       </div>
+      <CommentThread itemId={insight.id} initialComments={comments} signedIn={signedIn} />
     </article>
   );
 }
