@@ -1,0 +1,9 @@
+node_modules/
+.next/
+dist/
+.cache/
+.env
+.env.local
+*.log
+.DS_Store
+content/*.draft.json
