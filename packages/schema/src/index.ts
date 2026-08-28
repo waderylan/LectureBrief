@@ -10,22 +10,25 @@
  *   naming) — a sequence number, not a calendar week of a real course.
  *
  * After this freeze, every further change needs a stated reason — see the
- * `schema-edit` skill.
+ * `schema-edit` skill. (2026-08-28: exported the enum and sub-object schemas,
+ * previously module-private, so the extract stage can build LLM-facing raw
+ * schemas from the same vocabulary instead of duplicating literal lists that
+ * could drift from this file. No change to the document's shape.)
  */
 
 import { z } from "zod";
 
 export const SCHEMA_VERSION = 1 as const;
 
-const SlideRelation = z.enum(["on_slides", "elaborates_slide", "off_slides"]);
-const Stance = z.enum(["asserted", "speculated", "attributed", "opinion"]);
-const Speaker = z.enum(["instructor", "student", "unclear"]);
-const Verification = z.enum(["supported", "partially_supported"]);
-const Effort = z.enum(["afternoon", "weekend", "multi_week"]);
-const Status = z.enum(["draft", "approved"]);
+export const SlideRelation = z.enum(["on_slides", "elaborates_slide", "off_slides"]);
+export const Stance = z.enum(["asserted", "speculated", "attributed", "opinion"]);
+export const Speaker = z.enum(["instructor", "student", "unclear"]);
+export const Verification = z.enum(["supported", "partially_supported"]);
+export const Effort = z.enum(["afternoon", "weekend", "multi_week"]);
+export const Status = z.enum(["draft", "approved"]);
 
 /** Grounding fields — never optional. See ARCHITECTURE.md §5. */
-const Origin = z
+export const Origin = z
   .object({
     evidence: z.string().min(1),
     timestamp: z.number(),
@@ -80,36 +83,40 @@ export const AgentPrompt = z
   .strict();
 export type AgentPrompt = z.infer<typeof AgentPrompt>;
 
-const Callback = z
+export const Callback = z
   .object({
     to_week: z.number(),
     note: z.string().min(1),
     timestamp: z.number(),
   })
   .strict();
+export type Callback = z.infer<typeof Callback>;
 
-const GlossaryEntry = z
+export const GlossaryEntry = z
   .object({
     term: z.string().min(1),
     definition: z.string().min(1),
     timestamp: z.number(),
   })
   .strict();
+export type GlossaryEntry = z.infer<typeof GlossaryEntry>;
 
-const Announcement = z
+export const Announcement = z
   .object({
     text: z.string().min(1),
     timestamp: z.number(),
   })
   .strict();
+export type Announcement = z.infer<typeof Announcement>;
 
-const CorrectionLogEntry = z
+export const CorrectionLogEntry = z
   .object({
     from: z.string().min(1),
     to: z.string().min(1),
     timestamp: z.number(),
   })
   .strict();
+export type CorrectionLogEntry = z.infer<typeof CorrectionLogEntry>;
 
 export const LectureDocument = z
   .object({

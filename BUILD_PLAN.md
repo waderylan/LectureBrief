@@ -96,11 +96,14 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 ### Day 3 — Extraction
 
 - [x] Freeze `packages/schema` against ARCHITECTURE.md §9. Both sides import it. Add nothing speculative.
-- [ ] Map stage: one structured call per window, `zodOutputFormat`. Slides, glossary, and exclusion list go in the **stable prefix** so prompt caching covers all ~10 calls (§5).
-- [ ] Reduce stage: one call over all window outputs. Semantic dedup, cross-lecture ranking, `lead_insight` selection, callbacks, and the applied sections (§6).
-- [ ] `brief extract <n>` re-runs map and reduce from cache. **Under 60 seconds, or the prompt work on Day 6 doesn't happen.** This is the single highest-leverage engineering detail in the build.
-- [ ] Slug minting and persistence: ids generated once from content, matched on re-run by evidence-span overlap, never regenerated.
-- [ ] Output raw JSON to stdout. No site yet. Read it.
+- [x] ~~Map stage: one structured call per window~~ / ~~Reduce stage: one call over all window outputs~~ — implemented as one merged `extract` stage per §5 (map+reduce collapsed for talk-length input; Day 2 already dropped chunking, so per-window calls don't apply). Slides and the exclusion list are Day 4's, not the stable prefix here — see the note below. Semantic dedup/ranking/`lead_insight` selection/callbacks all happen in the single call.
+- [x] `brief extract <n>` re-runs from cache. **Under 60 seconds** — measured ~1.2-1.7s cached, vs. ~50-80s for a fresh call.
+- [x] Slug minting and persistence: ids generated once from content (`insight-<slug>-<hash>` etc.), matched on re-run by evidence-span overlap against whatever is currently cached (read even under `--force`), never regenerated for a matched item. Verified: re-running week 1 with `--force` reused ids for insights whose evidence matched the prior run and minted fresh ids only for genuinely new build ideas.
+- [x] Output raw JSON to stdout. No site yet. Read it. Ran on all three talks (weeks 1-3); lead insights are specific and grounded (e.g. week 3: "a two-line NATS change... increased server throughput by two million messages a second").
+
+**Note on `slide_relation` and `verification`:** neither is requested from the model here — Day 4 owns slide ingestion and the verify pass. Every insight from Day 3's extract carries provisional placeholders (`off_slides`, `supported`) that Day 4 overwrites. Nothing produced here is published (`status` stays `draft`), so this isn't a grounding violation, just an ordering one the original per-window map/reduce text didn't anticipate.
+
+**Note on timestamps:** the model is never asked to report a `timestamp` for anything anchored to `evidence` — the plain-text transcript it receives carries no timing markers, so a model-reported number would be a guess. The code instead locates the (verbatim-checked) evidence in the segment stream and reads the real segment start time off it. This also makes the verbatim check load-bearing: an evidence span that isn't found gets no timestamp and the item is dropped (`droppedForMissingEvidence`).
 
 *Gate: JSON for one talk that you'd actually read.*
 

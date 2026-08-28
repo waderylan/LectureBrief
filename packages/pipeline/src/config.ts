@@ -22,16 +22,28 @@ export const MODEL = "claude-opus-5" as const;
 export const EFFORT = {
   correct: "low",
   punctuate: "low",
-  extract: "high",
-  reduce: "xhigh",
+  // Map and reduce are one call now (BUILD_PLAN §5) — "medium" per that table.
+  extract: "medium",
   verify: "low",
 } as const;
 
-/** Chunking. See ARCHITECTURE.md AD-4. */
-export const CHUNK = {
-  windowSeconds: 12 * 60,
-  overlapSeconds: 60,
-} as const;
+/**
+ * Maps the CLI's `<week>` argument (extract/reduce/verify/publish/process) to
+ * the videoId that keys `.cache/<videoId>`. Every stage before extract is
+ * already keyed by videoId directly; this table is the one place a talk's
+ * release-sequence number is decided. See SOURCES.md for the three talks.
+ */
+export const TALK_WEEKS: Readonly<Record<number, string>> = {
+  1: "zOkou37L2Wo", // Logs Told Us It Was DNS (Malla/Andrews)
+  2: "qmt0ouHFgwY", // Hacking the Pachyderm (Weakly/Doster)
+  3: "DJ4d_PZ6Gns", // So You Wanna Go Fast? (Treat)
+};
+
+export function videoIdForWeek(week: number): string {
+  const id = TALK_WEEKS[week];
+  if (!id) throw new Error(`No talk registered for week ${week}. See TALK_WEEKS in config.ts.`);
+  return id;
+}
 
 /**
  * Names that must never appear in published output. Kept as a list rather than

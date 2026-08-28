@@ -1,0 +1,333 @@
+/**
+ * Stage: extract.
+ *
+ * Single-pass map+reduce, merged per BUILD_PLAN.md §5: a talk transcript is
+ * ~7-8k tokens, so windowing it (ARCHITECTURE.md AD-4) is pure overhead with
+ * nothing to recover. One structured call does what used to be map and
+ * reduce together.
+ *
+ * `slide_relation` and `verification` are not requested from the model —
+ * slide ingestion and the verification pass are Day 4 work (BUILD_PLAN.md
+ * Day 3 vs Day 4 split). This stage fills both with provisional defaults
+ * (`off_slides`, `supported`) that Day 4 overwrites. Nothing produced here is
+ * published: `status` stays `draft` until a human approves it.
+ *
+ * `timestamp` is never asked of the model for anything anchored to an
+ * `evidence` span. The plain-text transcript handed to the model carries no
+ * timing markers, so a model-reported number would be a guess; instead this
+ * code finds exactly where the (verified verbatim) evidence sits in the
+ * segment stream and reads the real segment start time off it. That is also
+ * what makes the verbatim check load-bearing rather than a formality: an
+ * evidence span that isn't found gets no timestamp and is dropped.
+ *
+ * Slug stability (ARCHITECTURE.md §9): ids are minted once from content and
+ * persisted. On re-run, each fresh item is matched against whatever is
+ * currently cached by evidence-span overlap; only a genuinely new item mints
+ * a new id. The previous cache is read even under `--force`, because forcing
+ * a recompute must not be the same thing as forgetting every id.
+ */
+
+import { createHash } from "node:crypto";
+import { z } from "zod";
+import {
+  Insight,
+  BuildIdea,
+  AgentPrompt,
+  Origin,
+  Stance,
+  Speaker,
+  Effort as BuildEffort,
+  Callback,
+  GlossaryEntry,
+  Announcement,
+} from "@lecturebrief/schema";
+import { callJson } from "../llm.js";
+import { loadPrompt, fill } from "../prompts.js";
+import { cached, isCached, readCache } from "../cache.js";
+import { EFFORT } from "../config.js";
+import type { Segment } from "../types.js";
+
+const RawOrigin = z.object({ evidence: z.string().min(1) });
+
+// No `.default()` on these: it makes zod's inferred *input* type optional
+// while the *output* type stays required, and `z.infer` picks up that split
+// (see the pre-existing `Segment.speaker` mismatch this codebase already has
+// from Day 1/2). The extraction prompt lists every field in its example JSON,
+// including empty-array cases, so the model always supplies them.
+const RawInsight = z.object({
+  claim: z.string().min(1),
+  context: z.string(),
+  evidence: z.string().min(1),
+  stance: Stance,
+  speaker: Speaker,
+  tags: z.array(z.string()),
+});
+type RawInsight = z.infer<typeof RawInsight>;
+
+const RawBuildIdea = z.object({
+  title: z.string().min(1),
+  pitch: z.string().min(1),
+  effort: BuildEffort,
+  you_will_learn: z.string().min(1),
+  stack_hint: z.array(z.string()),
+  origin: RawOrigin,
+});
+type RawBuildIdea = z.infer<typeof RawBuildIdea>;
+
+const RawAgentPrompt = z.object({
+  title: z.string().min(1),
+  what_it_does: z.string().min(1),
+  prompt: z.string().min(1),
+  prerequisites: z.array(z.string()),
+  origin: RawOrigin,
+});
+type RawAgentPrompt = z.infer<typeof RawAgentPrompt>;
+
+const RawExtraction = z.object({
+  lead_insight: RawInsight,
+  insights: z.array(RawInsight),
+  build_ideas: z.array(RawBuildIdea),
+  agent_prompts: z.array(RawAgentPrompt),
+  callbacks: z.array(z.object({ to_week: z.number(), note: z.string().min(1), timestamp: z.number() })),
+  glossary: z.array(
+    z.object({ term: z.string().min(1), definition: z.string().min(1), timestamp: z.number() }),
+  ),
+  announcements: z.array(z.object({ text: z.string().min(1), timestamp: z.number() })),
+  open_questions: z.array(z.string()),
+});
+
+export const ExtractResult = z.object({
+  promptVersion: z.string(),
+  leadInsight: Insight,
+  insights: z.array(Insight),
+  buildIdeas: z.array(BuildIdea),
+  agentPrompts: z.array(AgentPrompt),
+  callbacks: z.array(Callback),
+  glossary: z.array(GlossaryEntry),
+  announcements: z.array(Announcement),
+  openQuestions: z.array(z.string()),
+  /** Items the model produced whose evidence wasn't found verbatim in the transcript. Dropped, not published. */
+  droppedForMissingEvidence: z.number(),
+});
+export type ExtractResult = z.infer<typeof ExtractResult>;
+
+function normalizeWs(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "item";
+}
+
+function shortHash(s: string): string {
+  return createHash("sha256").update(s).digest("hex").slice(0, 8);
+}
+
+/** Containment-based overlap: 1 for an exact match, 0 for no shared span. */
+function evidenceOverlap(a: string, b: string): number {
+  const na = normalizeWs(a);
+  const nb = normalizeWs(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  const [shorter, longer] = na.length <= nb.length ? [na, nb] : [nb, na];
+  return longer.includes(shorter) ? shorter.length / longer.length : 0;
+}
+
+const ID_MATCH_THRESHOLD = 0.5;
+
+/**
+ * Match each fresh item against the previous run's items by evidence overlap,
+ * greedily, one previous id used at most once. Unmatched items mint a new id
+ * from their own content, so identical re-runs are stable even with no
+ * previous cache to match against.
+ */
+function assignIds<T>(
+  prefix: string,
+  fresh: T[],
+  previous: ReadonlyArray<{ id: string; evidence: string }>,
+  evidenceOf: (item: T) => string,
+  titleOf: (item: T) => string,
+): (T & { id: string })[] {
+  const used = new Set<string>();
+  return fresh.map((item) => {
+    let bestId: string | undefined;
+    let bestScore = 0;
+    for (const prev of previous) {
+      if (used.has(prev.id)) continue;
+      const score = evidenceOverlap(evidenceOf(item), prev.evidence);
+      if (score > bestScore) {
+        bestScore = score;
+        bestId = prev.id;
+      }
+    }
+    if (bestId !== undefined && bestScore >= ID_MATCH_THRESHOLD) {
+      used.add(bestId);
+      return { ...item, id: bestId };
+    }
+    return { ...item, id: `${prefix}-${slugify(titleOf(item))}-${shortHash(evidenceOf(item))}` };
+  });
+}
+
+/** Maps a position in the normalized whole-transcript text back to a segment start time. */
+interface TranscriptIndex {
+  text: string;
+  marks: ReadonlyArray<{ pos: number; start: number }>;
+}
+
+function buildTranscriptIndex(segments: readonly Segment[]): TranscriptIndex {
+  let text = "";
+  const marks: Array<{ pos: number; start: number }> = [];
+  for (const seg of segments) {
+    marks.push({ pos: text.length, start: seg.start });
+    text += (text ? " " : "") + normalizeWs(seg.text);
+  }
+  return { text, marks };
+}
+
+/** The start time of the segment containing the beginning of `evidence`, or null if not found. */
+function timestampFor(evidence: string, index: TranscriptIndex): number | null {
+  const idx = index.text.indexOf(normalizeWs(evidence));
+  if (idx === -1) return null;
+  let ts: number | null = null;
+  for (const m of index.marks) {
+    if (m.pos <= idx) ts = m.start;
+    else break;
+  }
+  return ts;
+}
+
+export async function run(
+  videoId: string,
+  punctuated: { text: string; segments: Segment[] },
+  opts: { force?: boolean } = {},
+): Promise<{ data: ExtractResult; fromCache: boolean }> {
+  const previous = isCached(videoId, "extract")
+    ? await readCache(videoId, "extract", ExtractResult).catch(() => null)
+    : null;
+
+  return cached(videoId, "extract", ExtractResult, opts.force ?? false, async () => {
+    const prompt = await loadPrompt("extract");
+    const { data: raw } = await callJson(RawExtraction, {
+      system: prompt.system,
+      user: fill(prompt.template, { transcript: punctuated.text }),
+      effort: EFFORT.extract,
+    });
+
+    const index = buildTranscriptIndex(punctuated.segments);
+    let dropped = 0;
+    const findTs = (evidence: string): number | null => {
+      const ts = timestampFor(evidence, index);
+      if (ts === null) dropped++;
+      return ts;
+    };
+
+    const leadTs = findTs(raw.lead_insight.evidence);
+    const insightsResolved = raw.insights
+      .map((i) => ({ ...i, __ts: findTs(i.evidence) }))
+      .filter((i): i is RawInsight & { __ts: number } => i.__ts !== null);
+    const leadCandidate =
+      leadTs !== null ? { ...raw.lead_insight, __ts: leadTs } : insightsResolved.shift();
+    if (!leadCandidate) {
+      throw new Error(
+        `extract: no insight for ${videoId} survived the verbatim-evidence check — every evidence span the model returned failed to match the transcript`,
+      );
+    }
+
+    const previousInsightPool = previous ? [previous.leadInsight, ...previous.insights] : [];
+    const insightsWithIds = assignIds(
+      "insight",
+      [leadCandidate, ...insightsResolved],
+      previousInsightPool,
+      (i) => i.evidence,
+      (i) => i.claim,
+    );
+    // assignIds preserves length, and the input array above always has at
+    // least one element (leadCandidate), so this is never undefined.
+    const leadWithId = insightsWithIds[0]!;
+    const restWithId = insightsWithIds.slice(1);
+
+    const finalizeInsight = (i: RawInsight & { __ts: number; id: string }): Insight =>
+      Insight.parse({
+        id: i.id,
+        claim: i.claim,
+        context: i.context,
+        evidence: i.evidence,
+        timestamp: i.__ts,
+        // Provisional — Day 4's slide comparison assigns the real value.
+        slide_relation: "off_slides",
+        stance: i.stance,
+        speaker: i.speaker,
+        // Provisional — Day 4's verification pass assigns the real value.
+        verification: "supported",
+        tags: i.tags,
+        redacted: false,
+      });
+
+    const buildIdeasResolved = raw.build_ideas
+      .map((b) => ({ ...b, __ts: findTs(b.origin.evidence) }))
+      .filter((b): b is RawBuildIdea & { __ts: number } => b.__ts !== null);
+    const previousBuildPool = (previous?.buildIdeas ?? []).map((b) => ({
+      id: b.id,
+      evidence: b.origin.evidence,
+    }));
+    const buildIdeas = assignIds(
+      "build",
+      buildIdeasResolved,
+      previousBuildPool,
+      (b) => b.origin.evidence,
+      (b) => b.title,
+    ).map((b) =>
+      BuildIdea.parse({
+        id: b.id,
+        title: b.title,
+        pitch: b.pitch,
+        effort: b.effort,
+        you_will_learn: b.you_will_learn,
+        stack_hint: b.stack_hint,
+        origin: Origin.parse({ evidence: b.origin.evidence, timestamp: b.__ts }),
+        redacted: false,
+      }),
+    );
+
+    const agentPromptsResolved = raw.agent_prompts
+      .map((p) => ({ ...p, __ts: findTs(p.origin.evidence) }))
+      .filter((p): p is RawAgentPrompt & { __ts: number } => p.__ts !== null);
+    const previousPromptPool = (previous?.agentPrompts ?? []).map((p) => ({
+      id: p.id,
+      evidence: p.origin.evidence,
+    }));
+    const agentPrompts = assignIds(
+      "prompt",
+      agentPromptsResolved,
+      previousPromptPool,
+      (p) => p.origin.evidence,
+      (p) => p.title,
+    ).map((p) =>
+      AgentPrompt.parse({
+        id: p.id,
+        title: p.title,
+        what_it_does: p.what_it_does,
+        prompt: p.prompt,
+        prerequisites: p.prerequisites,
+        origin: Origin.parse({ evidence: p.origin.evidence, timestamp: p.__ts }),
+        // Publication gate (ARCHITECTURE.md §6.2) — nothing the pipeline
+        // generates is tested until the operator runs it by hand, Day 6.
+        tested: false,
+        redacted: false,
+      }),
+    );
+
+    return {
+      promptVersion: prompt.version,
+      leadInsight: finalizeInsight(leadWithId),
+      insights: restWithId.map(finalizeInsight),
+      buildIdeas,
+      agentPrompts,
+      callbacks: raw.callbacks.map((c) => Callback.parse(c)),
+      glossary: raw.glossary.map((g) => GlossaryEntry.parse(g)),
+      announcements: raw.announcements.map((a) => Announcement.parse(a)),
+      openQuestions: raw.open_questions,
+      droppedForMissingEvidence: dropped,
+    };
+  });
+}

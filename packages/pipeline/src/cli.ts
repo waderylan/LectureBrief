@@ -10,12 +10,13 @@
  */
 
 import { Command } from "commander";
-import { PRODUCT_NAME } from "./config.js";
+import { PRODUCT_NAME, videoIdForWeek } from "./config.js";
 import * as fetchStage from "./stages/fetch.js";
 import * as transcribeStage from "./stages/transcribe.js";
 import * as correctStage from "./stages/correct.js";
 import * as redactStage from "./stages/redact.js";
 import * as punctuateStage from "./stages/punctuate.js";
+import * as extractStage from "./stages/extract.js";
 import { readCache } from "./cache.js";
 import { SourceMeta } from "./types.js";
 
@@ -80,6 +81,16 @@ async function pipelineTo(videoId: string, force?: boolean) {
   return { source, tr, cor, red };
 }
 
+async function pipelineToPunctuated(videoId: string, force?: boolean) {
+  const { red } = await pipelineTo(videoId);
+  // A previous run that errored leaves an incomplete result; recompute so the
+  // per-span cache can fill only the gaps.
+  const prior = await punctuateStage.peek(videoId);
+  const punctForce = force || (prior?.spansErrored ?? 0) > 0;
+  const { data: punct, fromCache } = await punctuateStage.run(videoId, red, { force: punctForce });
+  return { red, punct, fromCache };
+}
+
 program
   .command("redact")
   .argument("<url>", "talk URL or video id")
@@ -100,37 +111,27 @@ program
   .option("--force", "ignore cache")
   .action(async (url: string, o: { force?: boolean }) => {
     const videoId = fetchStage.parseVideoId(url);
-    const { red } = await pipelineTo(videoId);
-    // A previous run that errored leaves an incomplete result; recompute so
-    // the per-span cache can fill only the gaps.
-    const prior = await punctuateStage.peek(videoId);
-    const force = o.force || (prior?.spansErrored ?? 0) > 0;
-    const { data, fromCache } = await punctuateStage.run(videoId, red, { force });
+    const { punct: data, fromCache } = await pipelineToPunctuated(videoId, o.force);
     console.log(
       `${videoId}  ${data.spansTotal} spans  ${data.spansCachedHit} from span-cache  ${data.wordsKept} punctuated  ${data.wordsRestored} restored  ${data.spansErrored} errored${fromCache ? "  (stage cached)" : ""}`,
     );
   });
 
 program
-  .command("chunk")
-  .argument("<week>", "week number")
-  .description("split into overlapping windows")
-  .option("--force", "ignore cache")
-  .action(todo("chunk"));
-
-program
   .command("extract")
   .argument("<week>", "week number")
-  .description("map + reduce extraction from cache")
+  .description("single-pass extraction from the punctuated transcript (BUILD_PLAN §5 merges map+reduce)")
   .option("--force", "ignore cache")
-  .action(todo("extract"));
-
-program
-  .command("reduce")
-  .argument("<week>", "week number")
-  .description("reduce window outputs into one document")
-  .option("--force", "ignore cache")
-  .action(todo("reduce"));
+  .action(async (weekArg: string, o: { force?: boolean }) => {
+    const week = Number(weekArg);
+    const videoId = videoIdForWeek(week);
+    const { punct } = await pipelineToPunctuated(videoId);
+    const { data, fromCache } = await extractStage.run(videoId, punct, { force: o.force });
+    console.log(
+      `week ${week} (${videoId})  lead + ${data.insights.length} insights  ${data.buildIdeas.length} build ideas  ${data.agentPrompts.length} agent prompts  ${data.droppedForMissingEvidence} dropped for non-verbatim evidence${fromCache ? "  (cached)" : ""}`,
+    );
+    console.log(JSON.stringify(data, null, 2));
+  });
 
 program
   .command("verify")
