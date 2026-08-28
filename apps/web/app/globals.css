@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f0e7;
+  --foreground: #171512;
+  --paper: #fbf8f1;
+  --muted: #6f6a61;
+  --rule: #c9c1b4;
+  --accent: #d9362b;
 }
 
 @theme inline {
@@ -12,15 +16,75 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background-image: radial-gradient(rgb(23 21 18 / 0.025) 0.7px, transparent 0.7px);
+  background-size: 6px 6px;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: #eed3ad;
+}
+
+a,
+button,
+summary {
+  text-underline-offset: 3px;
+}
+
+.font-editorial {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: -0.025em;
+}
+
+.page-shell {
+  margin-inline: auto;
+  min-width: 0;
+  width: 100%;
+  max-width: 72rem;
+  padding-inline: 1.25rem;
+}
+
+.section-kicker {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.section-kicker::before {
+  color: var(--accent);
+  content: "◆";
+  font-size: 0.62rem;
+  margin-right: 0.5rem;
+}
+
+.editorial-card {
+  background: rgb(251 248 241 / 0.72);
+  border-color: var(--rule);
+  border-radius: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.editorial-card:hover {
+  background: var(--paper);
+  border-color: #81796d;
+}
+
+.rule-heading {
+  border-top: 1px solid var(--foreground);
+  padding-top: 0.8rem;
+}
+
+@media (min-width: 640px) {
+  .page-shell {
+    padding-inline: 2rem;
+  }
 }

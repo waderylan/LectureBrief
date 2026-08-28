@@ -51,7 +51,7 @@ export function CopyButton({
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
-      className="text-xs underline text-zinc-600 cursor-pointer"
+      className="cursor-pointer text-[10px] font-bold uppercase tracking-[0.12em] text-[#5f5a52] hover:text-[#d9362b]"
     >
       {copied ? "Copied!" : label}
     </button>

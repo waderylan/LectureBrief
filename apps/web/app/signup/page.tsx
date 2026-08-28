@@ -8,10 +8,13 @@ export const metadata = {
 
 export default function SignUpPage() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-16">
-      <h1 className="text-2xl font-semibold">Sign up</h1>
+    <main className="page-shell flex flex-1 flex-col items-center justify-center gap-6 py-16 sm:py-24">
+      <div className="text-center">
+        <p className="section-kicker mb-3">Join the discussion</p>
+        <h1 className="font-editorial text-5xl font-bold">Sign up</h1>
+      </div>
       <SignUpForm />
-      <p className="text-sm text-zinc-600">
+      <p className="text-sm text-[#6f6a61]">
         Already have an account?{" "}
         <Link href="/signin" className="underline">
           Sign in

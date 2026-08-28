@@ -32,22 +32,22 @@ export function InsightCard({
   return (
     <article
       id={insight.id}
-      className={`scroll-mt-20 flex flex-col gap-2 rounded border p-4 ${lead ? "border-black" : ""}`}
+      className={`editorial-card scroll-mt-20 flex flex-col gap-3 border p-5 sm:p-7 ${lead ? "border-black sm:p-9" : ""}`}
     >
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-500">
-        <span className="rounded-full border px-2 py-0.5">{STANCE_LABEL[insight.stance]}</span>
+      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#6f6a61]">
+        <span className="border border-[#81796d] px-2 py-1">{STANCE_LABEL[insight.stance]}</span>
         {insight.verification === "partially_supported" && (
-          <span className="rounded-full border border-amber-400 px-2 py-0.5 text-amber-700">
+          <span className="border border-amber-500 px-2 py-1 text-amber-800">
             Partially supported
           </span>
         )}
       </div>
-      <p className={lead ? "text-2xl font-semibold" : "text-lg font-medium"}>{insight.claim}</p>
-      {insight.context && <p className="text-sm text-zinc-600">{insight.context}</p>}
-      <blockquote className="border-l-2 pl-3 text-sm italic text-zinc-500">&ldquo;{insight.evidence}&rdquo;</blockquote>
+      <p className={`font-editorial font-bold leading-tight ${lead ? "text-3xl sm:text-5xl" : "text-2xl sm:text-3xl"}`}>{insight.claim}</p>
+      {insight.context && <p className="max-w-3xl text-sm leading-6 text-[#5f5a52] sm:text-base">{insight.context}</p>}
+      <blockquote className="border-l-2 border-[#d9362b] pl-4 font-editorial text-base italic leading-6 text-[#6f6a61]">&ldquo;{insight.evidence}&rdquo;</blockquote>
       <div className="flex items-center gap-1 flex-wrap">
         {insight.tags.map((tag) => (
-          <span key={tag} className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+          <span key={tag} className="bg-[#e8e1d6] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#5f5a52]">
             {tag}
           </span>
         ))}

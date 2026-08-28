@@ -25,19 +25,19 @@ export function BuildIdeaCard({
   signedIn?: boolean;
 }) {
   return (
-    <article id={idea.id} className="scroll-mt-20 flex flex-col gap-2 rounded border p-4">
-      <span className="w-fit rounded-full border px-2 py-0.5 text-xs uppercase tracking-wide text-zinc-500">
+    <article id={idea.id} className="editorial-card scroll-mt-20 flex flex-col gap-3 border p-5 sm:p-7">
+      <span className="w-fit border border-[#81796d] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#6f6a61]">
         {EFFORT_LABEL[idea.effort]}
       </span>
-      <p className="text-lg font-medium">{idea.title}</p>
-      <p className="text-sm text-zinc-700">{idea.pitch}</p>
-      <p className="text-sm text-zinc-600">
+      <p className="font-editorial text-2xl font-bold leading-tight sm:text-3xl">{idea.title}</p>
+      <p className="text-sm leading-6 text-[#413d37] sm:text-base">{idea.pitch}</p>
+      <p className="text-sm text-[#6f6a61]">
         <span className="font-medium">You&rsquo;ll learn: </span>
         {idea.you_will_learn}
       </p>
       <div className="flex flex-wrap gap-1">
         {idea.stack_hint.map((s) => (
-          <span key={s} className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+          <span key={s} className="bg-[#e8e1d6] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#5f5a52]">
             {s}
           </span>
         ))}

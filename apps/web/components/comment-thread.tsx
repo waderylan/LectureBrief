@@ -51,29 +51,29 @@ export function CommentThread({
   }
 
   return (
-    <div className="flex flex-col gap-2 border-t pt-2 mt-1">
+    <div className="mt-2 flex flex-col gap-3 border-t border-[#c9c1b4] pt-4">
       {optimisticComments.map((c) => (
-        <div key={c.id} className="text-sm">
+        <div key={c.id} className="border-l border-[#c9c1b4] pl-3 text-sm">
           <span className="font-medium">{c.authorEmail}</span>{" "}
-          <span className="text-xs text-zinc-500">{new Date(c.createdAt).toLocaleString()}</span>
-          <p className="text-zinc-700">{c.body}</p>
+          <span className="text-xs text-[#6f6a61]">{new Date(c.createdAt).toLocaleString()}</span>
+          <p className="text-[#413d37]">{c.body}</p>
         </div>
       ))}
       {signedIn ? (
-        <form ref={formRef} action={submit} className="flex gap-2">
+        <form ref={formRef} action={submit} className="flex flex-col gap-2 sm:flex-row">
           <input
             name="body"
             required
             placeholder="Add a comment"
-            className="flex-1 rounded border px-2 py-1 text-sm"
+            className="min-w-0 flex-1 border border-[#a9a094] bg-[#fbf8f1] px-3 py-2 text-sm outline-none focus:border-black"
           />
-          <button type="submit" disabled={pending} className="text-sm underline disabled:opacity-50">
+          <button type="submit" disabled={pending} className="border border-black bg-black px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50">
             {pending ? "Posting…" : "Post"}
           </button>
         </form>
       ) : (
-        <p className="text-xs text-zinc-500">
-          <Link href="/signin" className="underline">
+        <p className="text-xs text-[#6f6a61]">
+          <Link href="/signin" className="font-semibold underline">
             Sign in
           </Link>{" "}
           to comment.

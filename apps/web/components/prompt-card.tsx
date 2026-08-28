@@ -19,16 +19,16 @@ export function PromptCard({
   signedIn?: boolean;
 }) {
   return (
-    <article id={prompt.id} className="scroll-mt-20 flex flex-col gap-2 rounded border p-4">
-      <p className="text-lg font-medium">{prompt.title}</p>
-      <p className="text-sm text-zinc-700">{prompt.what_it_does}</p>
+    <article id={prompt.id} className="editorial-card scroll-mt-20 flex flex-col gap-3 border p-5 sm:p-7">
+      <p className="font-editorial text-2xl font-bold leading-tight sm:text-3xl">{prompt.title}</p>
+      <p className="text-sm leading-6 text-[#413d37] sm:text-base">{prompt.what_it_does}</p>
       {prompt.prerequisites.length > 0 && (
         <div className="text-sm text-zinc-600">
           <span className="font-medium">Prerequisites: </span>
           {prompt.prerequisites.join(", ")}
         </div>
       )}
-      <pre className="whitespace-pre-wrap rounded bg-zinc-50 p-3 text-sm text-zinc-800">{prompt.prompt}</pre>
+      <pre className="max-w-full overflow-x-auto whitespace-pre-wrap border border-[#c9c1b4] bg-[#eee8de] p-4 text-sm leading-6 break-words text-[#292620]">{prompt.prompt}</pre>
       <div className="flex items-center gap-4">
         <CopyButton label="Copy prompt" text={prompt.prompt} />
         <CopyButton label="Copy link" text={`/w/${week}#${prompt.id}`} absolute />

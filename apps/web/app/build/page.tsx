@@ -20,18 +20,21 @@ export default async function BuildPage({ searchParams }: PageProps<"/build">) {
   const filtered = effort ? all.filter((b) => b.idea.effort === effort) : all;
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-12">
-      <h1 className="text-2xl font-semibold">Build</h1>
+    <main className="page-shell flex flex-1 flex-col gap-7 py-12 sm:py-16">
+      <header className="border-b border-black pb-6">
+        <p className="section-kicker mb-3">Ideas worth making</p>
+        <h1 className="font-editorial text-5xl font-bold sm:text-6xl">Build</h1>
+      </header>
       <SideProjectsLabel />
-      <nav className="flex gap-3 text-sm">
-        <Link href="/build" className={!effort ? "font-semibold underline" : "underline text-zinc-600"}>
+      <nav className="flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.1em]">
+        <Link href="/build" className={`border px-3 py-1.5 ${!effort ? "border-black bg-black text-white" : "border-[#81796d] text-[#5f5a52]"}`}>
           All
         </Link>
         {EFFORTS.map((e) => (
           <Link
             key={e}
             href={`/build?effort=${e}`}
-            className={effort === e ? "font-semibold underline" : "underline text-zinc-600"}
+            className={`border px-3 py-1.5 ${effort === e ? "border-black bg-black text-white" : "border-[#81796d] text-[#5f5a52]"}`}
           >
             {e}
           </Link>
@@ -40,11 +43,11 @@ export default async function BuildPage({ searchParams }: PageProps<"/build">) {
       {filtered.length === 0 ? (
         <p className="text-zinc-600">Nothing here yet.</p>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="grid gap-5 lg:grid-cols-2">
           {filtered.map(({ week, idea }) => (
-            <div key={idea.id} className="flex flex-col gap-1">
+            <div key={idea.id} className="flex flex-col gap-2">
               <BuildIdeaCard idea={idea} week={week} />
-              <Link href={`/w/${week}`} className="text-xs text-zinc-500 underline">
+              <Link href={`/w/${week}`} className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#6f6a61]">
                 from week {week}
               </Link>
             </div>

@@ -26,15 +26,18 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
   const commentsByItem = await getCommentsForItems(allItemIds);
 
   return (
-    <article className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-12">
-      <header className="flex flex-col gap-1">
-        <p className="text-sm text-zinc-500">
-          Week {lecture.week} &middot; {lecture.date}
+    <article className="page-shell flex flex-col gap-14 py-10 sm:py-14">
+      <header className="border-b border-black pb-8 text-center sm:pb-10">
+        <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6f6a61]">
+          Week {lecture.week} <span className="px-2 text-[#d9362b]">●</span> {lecture.date}
         </p>
-        <h1 className="text-3xl font-bold">{lecture.title}</h1>
+        <h1 className="font-editorial mx-auto max-w-4xl break-words text-4xl font-bold leading-[0.98] sm:text-6xl lg:text-7xl">
+          {lecture.title}
+        </h1>
       </header>
 
-      <section>
+      <section className="mx-auto w-full max-w-4xl">
+        <p className="section-kicker mb-3">The lead insight</p>
         <InsightCard
           insight={lecture.leadInsight}
           week={lecture.week}
@@ -45,8 +48,11 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
       </section>
 
       {lecture.offSlides.length > 0 && (
-        <section className="flex flex-col gap-4">
-          <h2 className="text-xl font-semibold">Off the slides</h2>
+        <section className="mx-auto flex w-full max-w-4xl flex-col gap-5">
+          <div className="rule-heading flex items-baseline justify-between">
+            <h2 className="font-editorial text-3xl font-bold">Off the slides</h2>
+            <span className="section-kicker hidden sm:block">What you heard in the room</span>
+          </div>
           {lecture.offSlides.map((insight) => (
             <InsightCard
               key={insight.id}
@@ -59,8 +65,11 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
         </section>
       )}
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Build this</h2>
+      <section className="mx-auto flex w-full max-w-4xl flex-col gap-5">
+        <div className="rule-heading flex items-baseline justify-between">
+          <h2 className="font-editorial text-3xl font-bold">Build this</h2>
+          <span className="section-kicker hidden sm:block">Put the lecture to work</span>
+        </div>
         <SideProjectsLabel />
         {lecture.buildIdeas.length === 0 ? (
           <p className="text-sm text-zinc-500">No build ideas for this one — not every talk warrants one.</p>
@@ -77,8 +86,11 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
         )}
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Prompts to try</h2>
+      <section className="mx-auto flex w-full max-w-4xl flex-col gap-5">
+        <div className="rule-heading flex items-baseline justify-between">
+          <h2 className="font-editorial text-3xl font-bold">Prompts to try</h2>
+          <span className="section-kicker hidden sm:block">Ready to use</span>
+        </div>
         <SideProjectsLabel />
         {lecture.agentPrompts.length === 0 ? (
           <p className="text-sm text-zinc-500">No tested prompts for this one yet.</p>
@@ -96,8 +108,8 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
       </section>
 
       {lecture.callbacks.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-xl font-semibold">Callbacks</h2>
+        <section className="rule-heading mx-auto flex w-full max-w-4xl flex-col gap-3">
+          <h2 className="font-editorial text-2xl font-bold">Callbacks</h2>
           <ul className="flex flex-col gap-1 text-sm text-zinc-700">
             {lecture.callbacks.map((cb, i) => (
               <li key={i}>
@@ -109,8 +121,8 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
       )}
 
       {lecture.glossary.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-xl font-semibold">Glossary</h2>
+        <section className="rule-heading mx-auto flex w-full max-w-4xl flex-col gap-3">
+          <h2 className="font-editorial text-2xl font-bold">Glossary</h2>
           <dl className="flex flex-col gap-2 text-sm">
             {lecture.glossary.map((g, i) => (
               <div key={i}>
@@ -123,8 +135,8 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
       )}
 
       {lecture.announcements.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-xl font-semibold">Announcements</h2>
+        <section className="rule-heading mx-auto flex w-full max-w-4xl flex-col gap-3">
+          <h2 className="font-editorial text-2xl font-bold">Announcements</h2>
           <ul className="flex flex-col gap-1 text-sm text-zinc-700">
             {lecture.announcements.map((a, i) => (
               <li key={i}>{a.text}</li>
@@ -134,8 +146,8 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
       )}
 
       {lecture.onSlides.length > 0 && (
-        <details className="flex flex-col gap-4">
-          <summary className="cursor-pointer text-xl font-semibold">On the slides</summary>
+        <details className="rule-heading mx-auto w-full max-w-4xl">
+          <summary className="font-editorial cursor-pointer text-2xl font-bold">On the slides</summary>
           <div className="flex flex-col gap-4 pt-4">
             {lecture.onSlides.map((insight) => (
               <InsightCard

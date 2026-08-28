@@ -12,9 +12,10 @@ export default async function Home() {
 
   if (!lecture) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
-        <h1 className="text-2xl font-semibold">No lecture published yet</h1>
-        <p className="text-zinc-600">Check back once the first one is approved and published.</p>
+      <main className="page-shell flex flex-1 flex-col items-center justify-center gap-4 py-24 text-center">
+        <p className="section-kicker">Latest edition</p>
+        <h1 className="font-editorial text-4xl font-bold">No lecture published yet</h1>
+        <p className="text-[#6f6a61]">Check back once the first one is approved and published.</p>
       </main>
     );
   }
@@ -22,8 +23,8 @@ export default async function Home() {
   return (
     <main className="flex-1">
       <LecturePage lecture={lecture} />
-      <div className="mx-auto flex w-full max-w-3xl justify-end px-6 pb-12">
-        <Link href="/archive" className="text-sm underline text-zinc-600">
+      <div className="page-shell flex justify-end pb-14">
+        <Link href="/archive" className="border-b border-black pb-1 text-xs font-bold uppercase tracking-[0.12em]">
           See all past lectures &rarr;
         </Link>
       </div>
