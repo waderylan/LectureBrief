@@ -55,7 +55,13 @@ export async function cached<T>(
   produce: () => Promise<T>,
 ): Promise<{ data: T; fromCache: boolean }> {
   if (!force && isCached(videoId, stage)) {
-    return { data: await readCache(videoId, stage, schema), fromCache: true };
+    try {
+      return { data: await readCache(videoId, stage, schema), fromCache: true };
+    } catch {
+      // A cache written before the stage's schema changed is a miss, not a
+      // crash. Recompute rather than making every schema edit require a manual
+      // cache wipe.
+    }
   }
   const data = await produce();
   await writeCache(videoId, stage, data);

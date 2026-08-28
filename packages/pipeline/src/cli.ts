@@ -101,9 +101,13 @@ program
   .action(async (url: string, o: { force?: boolean }) => {
     const videoId = fetchStage.parseVideoId(url);
     const { red } = await pipelineTo(videoId);
-    const { data, fromCache } = await punctuateStage.run(videoId, red, o);
+    // A previous run that errored leaves an incomplete result; recompute so
+    // the per-span cache can fill only the gaps.
+    const prior = await punctuateStage.peek(videoId);
+    const force = o.force || (prior?.spansErrored ?? 0) > 0;
+    const { data, fromCache } = await punctuateStage.run(videoId, red, { force });
     console.log(
-      `${videoId}  ${data.spansTotal} spans  ${data.spansRejected} invariant-rejected  ${data.spansErrored} errored  ${fromCache ? "(cached)" : "(fresh)"}`,
+      `${videoId}  ${data.spansTotal} spans  ${data.spansCachedHit} from span-cache  ${data.wordsKept} punctuated  ${data.wordsRestored} restored  ${data.spansErrored} errored${fromCache ? "  (stage cached)" : ""}`,
     );
   });
 

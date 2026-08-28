@@ -6,20 +6,28 @@
  *
  * AD-3 forbids the correction pass from restructuring sentences because a model
  * told to "clean up" a transcript smooths away the informal asides that are the
- * product. That rule is enforced here by a mechanical invariant rather than by
- * instruction: strip punctuation and casing from input and output and the word
- * sequences must be identical. A model that drops a filler word, reorders, or
- * paraphrases fails the check and its span is discarded in favour of the
- * original — so the failure mode is "still unpunctuated", never "quietly
- * rewritten".
+ * product. That rule is not merely instructed here, and not merely checked: the
+ * output is rebuilt from the original word array by `mergePunctuation`, taking
+ * only punctuation and casing from the model. The invariant therefore holds by
+ * construction and no model behaviour can violate it.
+ *
+ * Spans are large deliberately. An invocation costs ~22k tokens of harness
+ * overhead against a few hundred tokens of content, so call count — not span
+ * size — is what drives the bill. There is no retry for the same reason.
  */
 
 import { z } from "zod";
 import { callJson } from "../llm.js";
 import { loadPrompt, fill } from "../prompts.js";
-import { cached } from "../cache.js";
+import { cached, cacheDir, isCached, readCache } from "../cache.js";
 import { EFFORT, PUNCTUATE_SPAN_CHARS } from "../config.js";
+import { mergePunctuation } from "../punctmerge.js";
 import { Segment } from "../types.js";
+import { createHash } from "node:crypto";
+import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
 
 const Punctuated = z.object({ text: z.string() });
 
@@ -28,10 +36,16 @@ export const PunctuatedTranscript = z.object({
   segments: z.array(Segment),
   text: z.string(),
   spansTotal: z.number(),
-  /** Spans where the model violated the word-sequence invariant. */
-  spansRejected: z.number(),
   /** Spans where the call itself failed. Distinct from a bad answer. */
   spansErrored: z.number(),
+  /** Words that took the model's punctuation and casing. */
+  wordsKept: z.number(),
+  /** Words the model altered, restored from the original by the merge. */
+  wordsRestored: z.number(),
+  /** Spans served from the per-span cache without an LLM call. */
+  spansCachedHit: z.number(),
+  /** Why any span failed. Empty when everything succeeded. */
+  errors: z.array(z.string()),
 });
 export type PunctuatedTranscript = z.infer<typeof PunctuatedTranscript>;
 
@@ -69,6 +83,38 @@ export function firstDivergence(before: string, after: string): { want: string; 
   };
 }
 
+/**
+ * Per-span cache path. Keyed by span content and prompt version, so editing the
+ * prompt invalidates everything and editing nothing costs nothing.
+ */
+function spanCachePath(videoId: string): string {
+  return join(cacheDir(videoId), "punct-spans.json");
+}
+
+export function spanKey(span: string, promptVersion: string): string {
+  return createHash("sha256").update(promptVersion + "|" + span).digest("hex").slice(0, 32);
+}
+
+async function readSpanCache(videoId: string, force: boolean): Promise<Record<string, string>> {
+  const p = spanCachePath(videoId);
+  if (force) {
+    await rm(p, { force: true });
+    return {};
+  }
+  if (!existsSync(p)) return {};
+  try {
+    return JSON.parse(await readFile(p, "utf8")) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+async function writeSpanCache(videoId: string, cache: Record<string, string>): Promise<void> {
+  const p = spanCachePath(videoId);
+  await mkdir(cacheDir(videoId), { recursive: true });
+  await writeFile(p, JSON.stringify(cache, null, 2), "utf8");
+}
+
 /** Group segments into spans big enough to punctuate sensibly. */
 function toSpans(segments: Segment[]): Segment[][] {
   const spans: Segment[][] = [];
@@ -103,6 +149,22 @@ function redistribute(span: Segment[], punctuated: string): Segment[] {
   return out;
 }
 
+/**
+ * The previously cached result, if any.
+ *
+ * The stage cache alone would happily serve a result that had failed spans in
+ * it. The caller uses this to notice that and recompute — which is now cheap,
+ * because the per-span cache means only the failed spans actually call out.
+ */
+export async function peek(videoId: string): Promise<PunctuatedTranscript | null> {
+  if (!isCached(videoId, "punctuated")) return null;
+  try {
+    return await readCache(videoId, "punctuated", PunctuatedTranscript);
+  } catch {
+    return null;
+  }
+}
+
 export async function run(
   videoId: string,
   input: { segments: Segment[] },
@@ -117,57 +179,65 @@ export async function run(
       const prompt = await loadPrompt("punctuate");
       const spans = toSpans(input.segments);
       const segments: Segment[] = [];
-      let rejected = 0;
       let errored = 0;
+      let wordsKept = 0;
+      let wordsRestored = 0;
+      let spansCachedHit = 0;
+      const errors: string[] = [];
+
+      // Per-span cache. Without it, one failed span forces every other span in
+      // the talk to be recomputed, which at ~22k tokens of overhead per call is
+      // the entire cost of the stage paid again to repair a fraction of it.
+      const spanCache = await readSpanCache(videoId, opts.force ?? false);
 
       for (const span of spans) {
         const original = span.map((s) => s.text).join(" ");
-        let accepted: string | null = null;
+        const originalWords = original.split(/\s+/).filter(Boolean);
+        const key = spanKey(original, prompt.version);
 
-        try {
-          let user = fill(prompt.template, { span: original });
-
-          // Two attempts. The model's habitual violation is silently fixing a
-          // transcription error, so naming the exact word it changed is far
-          // more effective than restating the rule.
-          for (let attempt = 0; attempt < 2; attempt++) {
+        let text = spanCache[key] ?? null;
+        if (text !== null) {
+          spansCachedHit++;
+        } else {
+          try {
             const { data } = await callJson(Punctuated, {
               system: prompt.system,
-              user,
+              user: fill(prompt.template, { span: original }),
               effort: EFFORT.punctuate,
             });
-            if (preservesWords(original, data.text)) {
-              accepted = data.text;
-              break;
-            }
-            if (attempt === 0) {
-              const d = firstDivergence(original, data.text);
-              user =
-                `${fill(prompt.template, { span: original })}\n\n` +
-                `Your previous response changed a word. You wrote "${d.got}" where the input has "${d.want}". ` +
-                `That word may be a transcription error, but correcting it is not your job and it must be left exactly as it is. ` +
-                `Return the same words again, changing only punctuation and casing.`;
-            } else {
-              rejected++;
-            }
+            // No retry. The merge keeps every original word and takes only
+            // punctuation and casing from the model, so a partly-wrong answer
+            // is still worth most of its punctuation — and a second invocation
+            // costs ~22k tokens to buy a few hundred tokens of content.
+            const merged = mergePunctuation(originalWords, data.text);
+            text = merged.text;
+            wordsKept += merged.matched;
+            wordsRestored += merged.unmatched;
+            spanCache[key] = text;
+          } catch (e) {
+            // A failed call is not a failed answer. Record why, and leave the
+            // span uncached so the next run retries only this one.
+            errored++;
+            errors.push(e instanceof Error ? e.message.slice(0, 200) : String(e));
           }
-        } catch {
-          // A failed call is not a failed answer; count it separately so a
-          // flaky invocation is never read as the model misbehaving.
-          errored++;
         }
 
-        if (accepted === null) segments.push(...span);
-        else segments.push(...redistribute(span, accepted));
+        if (text === null) segments.push(...span);
+        else segments.push(...redistribute(span, text));
       }
+
+      await writeSpanCache(videoId, spanCache);
 
       return {
         promptVersion: prompt.version,
         segments,
         text: segments.map((s) => s.text).join(" "),
         spansTotal: spans.length,
-        spansRejected: rejected,
         spansErrored: errored,
+        wordsKept,
+        wordsRestored,
+        spansCachedHit,
+        errors,
       };
     },
   );

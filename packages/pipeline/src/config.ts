@@ -54,4 +54,11 @@ export const YT_DLP =
 export const SEGMENT_MAX_CHARS = 200;
 
 /** Characters per span sent to the punctuation pass. */
-export const PUNCTUATE_SPAN_CHARS = 1800;
+export const PUNCTUATE_SPAN_CHARS = 8000;
+
+/**
+ * Attempts per punctuation span. Each retry names the specific word the model
+ * changed, and a later attempt often diverges somewhere new, so more than one
+ * retry genuinely helps.
+ */
+export const PUNCTUATE_ATTEMPTS = 4;
