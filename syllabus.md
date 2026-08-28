@@ -11,10 +11,10 @@ The source talks are SRE and infrastructure war stories (see `SOURCES.md`), so t
 Terms likely to be spoken in the source talks and likely to be mis-transcribed — accented or not, these are low-frequency tokens with no surrounding context to recover them from. Passed to the transcription provider as keyterms and to the correction pass as the substitution vocabulary.
 
 **Networking and kernel**
-conntrack, netfilter, iptables, nftables, eBPF, XDP, Martian packet, SNAT, DNAT, MTU, TCP RST, SYN backlog, ephemeral port exhaustion, TIME_WAIT, keepalive, MSS clamping, VXLAN, overlay network, network namespace, veth pair, CNI, kube-proxy, IPVS
+conntrack, netfilter, iptables, nftables, eBPF, XDP, Cilium, Calico, Martian packet, SNAT, DNAT, MTU, SYN, SYN packet, SYN flood, TCP RST, SYN backlog, ephemeral port exhaustion, TIME_WAIT, keepalive, MSS clamping, VXLAN, overlay network, network namespace, veth pair, CNI, kube-proxy, IPVS, reverse path filtering, RPF, ethtool, ENA, conntrack allowance exceeded, VPC
 
 **DNS**
-NXDOMAIN, SERVFAIL, ndots, search domain, resolv.conf, stub resolver, CoreDNS, dnsmasq, negative caching, TTL, glue record, recursive resolver, authoritative nameserver, EDNS0, UDP truncation
+NXDOMAIN, SERVFAIL, ndots, search domain, resolv.conf, stub resolver, CoreDNS, NodeLocal DNSCache, cluster DNS, Route 53, dnsmasq, negative caching, TTL, glue record, recursive resolver, authoritative nameserver, EDNS0, UDP truncation
 
 **Distributed systems and messaging**
 NATS, Kafka, gRPC, HTTP/2 multiplexing, backpressure, head-of-line blocking, exactly-once delivery, at-least-once, idempotency key, quorum, Raft, Paxos, split brain, gossip protocol, vector clock, CRDT, eventual consistency, linearizability, tail latency, p99, coordinated omission, little's law, queueing delay, metastable failure, retry storm, thundering herd, circuit breaker, exponential backoff, jitter, load shedding, bulkhead

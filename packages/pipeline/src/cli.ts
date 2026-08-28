@@ -13,6 +13,7 @@ import { Command } from "commander";
 import { PRODUCT_NAME } from "./config.js";
 import * as fetchStage from "./stages/fetch.js";
 import * as transcribeStage from "./stages/transcribe.js";
+import * as correctStage from "./stages/correct.js";
 import { readCache } from "./cache.js";
 import { SourceMeta } from "./types.js";
 
@@ -54,10 +55,20 @@ program
 
 program
   .command("correct")
-  .argument("<week>", "week number")
+  .argument("<url>", "talk URL or video id")
   .description("glossary term substitution, non-destructive")
   .option("--force", "ignore cache")
-  .action(todo("correct"));
+  .action(async (url: string, o: { force?: boolean }) => {
+    const videoId = fetchStage.parseVideoId(url);
+    const source = await readCache(videoId, "source", SourceMeta);
+    const { data: tr } = await transcribeStage.run(videoId, source);
+    const { data, fromCache } = await correctStage.run(videoId, tr, o);
+    console.log(
+      `${videoId}  ${data.proposed.length} distinct substitutions  ${data.correctionsLog.length} occurrences  ${fromCache ? "(cached)" : "(fresh)"}`,
+    );
+    for (const c of data.proposed) console.log(`  APPLIED  ${c.from} -> ${c.to}`);
+    for (const c of data.skipped) console.log(`  skipped  ${c.from} -> ${c.to}  (${c.reason})`);
+  });
 
 program
   .command("redact")

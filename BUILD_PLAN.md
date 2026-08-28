@@ -80,13 +80,15 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 
 ### Day 2 — Correction, redaction, chunking
 
-- [ ] Glossary extraction from `syllabus.md` into a term list.
-- [ ] Correction pass (AD-3): **term substitutions only.** Non-destructive — raw and corrected both retained, every change logged as `{from, to, timestamp}`. The prompt must forbid rephrasing, grammar fixes, filler removal, and restructuring. A model told to "clean up" a transcript deletes exactly the asides that are the product.
+- [x] Glossary extraction from `syllabus.md` into a term list. Mechanical parse, not a model call.
+- [x] Correction pass (AD-3): **term substitutions only.** Non-destructive — raw and corrected both retained, every change logged as `{from, to, timestamp}`. The prompt must forbid rephrasing, grammar fixes, filler removal, and restructuring. A model told to "clean up" a transcript deletes exactly the asides that are the product.
+- [x] **Confidence gate on corrections.** Only `high` confidence substitutions are applied; `low` ones are recorded in `skipped` and surfaced, never applied. Added after v0.1 of the prompt produced `Cilium → Istio` and `cluster DNS → CoreDNS` — a confident falsehood reads as correct and survives review, where a visible transcription error does not.
+- [ ] Punctuation pass: insert sentence punctuation only, guarded by a word-sequence invariant (strip punctuation and casing from input and output; they must match exactly). This is what makes AD-3's non-destructive guarantee provable rather than merely instructed. Prompt written (`prompts/punctuate.md`); stage not built.
 - [ ] `redactions.yml` per lecture: timestamp ranges and literal strings, stripped **before** extraction sees anything (§7.2).
-- [ ] Chunking: ~12-minute windows, ~1 minute overlap.
-- [ ] `brief correct` and `brief chunk` runnable independently off cache.
 
-*Gate: a corrected transcript, a diffable corrections log, and windows on disk.*
+~~Chunking~~ — **dropped.** Windows only existed to serve map-reduce, which §5 removed for talk-length input.
+
+*Gate: a corrected transcript and a diffable corrections log.*
 
 ### Day 3 — Extraction
 

@@ -11,11 +11,43 @@
  * Every flag below is doing work; see the notes on each.
  */
 
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
 import type { ZodType } from "zod";
 
-const exec = promisify(execFile);
+/**
+ * Runs `claude` with the payload on stdin.
+ *
+ * The payload must not be an argv entry: Windows caps a command line near 32k
+ * characters and a transcript comfortably exceeds that. `ENAMETOOLONG` is what
+ * that failure looks like.
+ */
+function runClaude(args: string[], stdin: string, timeoutMs: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("claude", args, { windowsHide: true, shell: false });
+    let out = "";
+    let err = "";
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error(`claude timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (d: string) => (out += d));
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (d: string) => (err += d));
+    child.on("error", (e) => {
+      clearTimeout(timer);
+      reject(e);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) reject(new Error(`claude exited ${code}: ${err.slice(0, 500)}`));
+      else resolve(out);
+    });
+
+    child.stdin.end(stdin, "utf8");
+  });
+}
 
 export type Effort = "low" | "medium" | "high";
 
@@ -44,10 +76,10 @@ function stripFence(s: string): string {
   return (m?.[1] ?? t).trim();
 }
 
+/** The payload goes on stdin; only short flags belong in argv. */
 function buildArgs(o: CallOptions): string[] {
   return [
     "-p",
-    o.user,
     "--model",
     o.model ?? "sonnet",
     "--effort",
@@ -90,11 +122,11 @@ export async function callJson<T>(
             user: `${o.user}\n\nYour previous response was rejected: ${lastErr}\nReturn only valid JSON matching the schema.`,
           };
 
-    const { stdout } = await exec("claude", buildArgs(opts), {
-      timeout: o.timeoutMs ?? 180_000,
-      maxBuffer: 64 * 1024 * 1024,
-      windowsHide: true,
-    });
+    const stdout = await runClaude(
+      buildArgs(opts),
+      opts.user,
+      o.timeoutMs ?? 300_000,
+    );
 
     const envelope = JSON.parse(stdout) as {
       result?: string;
