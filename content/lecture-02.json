@@ -4,89 +4,200 @@
   "date": "2026-01-19",
   "title": "Hacking the Pachyderm",
   "status": "approved",
-  "prompt_version": "extract@0.2",
-  "generated_at": "2026-08-28T18:48:15.576Z",
+  "prompt_version": "extract@0.3",
+  "generated_at": "2026-08-28T22:36:50.788Z",
   "lead_insight": {
-    "id": "insight-during-the-migration-crisis-the-team-discovered--780a71e6",
-    "claim": "During the migration crisis, the team discovered the system was running about 300-something IOPS and 12 fsyncs per second, a level of I/O performance the speaker compares to an SD card from 2004.",
-    "context": "War story about diagnosing why the system felt slow.",
-    "evidence": "so we had 300 and 12 Fsyncs per second, which is, I believe, about the same as an SD card from 2004..",
-    "timestamp": 965.76,
+    "id": "insight-resilient-systems-require-adapting-the-technical-c87e4272",
+    "claim": "Resilient systems require adapting the technical system and the human system together.",
+    "context": "The migration exposed failures that no single root-cause fix could prevent.",
+    "evidence": "Systems resilient requires systemic adoption, and any sort of trying to like solve one particular insight, or one particular problem, we'll solve that one. The system is a healthy, growing organism that involves technical people, social things, like all of these coming together, and that's what Villas really needed.",
+    "timestamp": 224.58,
     "slide_relation": "elaborates_slide",
     "stance": "asserted",
     "speaker": "instructor",
     "verification": "partially_supported",
     "tags": [
-      "performance",
-      "storage",
-      "iops"
+      "resilience",
+      "systems",
+      "teamwork"
     ],
     "redacted": false
   },
   "insights": [
     {
-      "id": "insight-the-team-pushed-postgres-connections-up-to-4096--897b9765",
-      "claim": "The team pushed Postgres connections up to 4096 during the crisis, even though internet-scale database guidance recommends never going above 1024.",
-      "context": "Story about the 'add more workers' anti-pattern making Postgres contention worse.",
-      "evidence": "we have bunch of limit up twice, and we were running 4098 connections in postgres, and it turns out for internet scale databases, they still recommend literally never going above 10 24.",
-      "timestamp": 862.98,
+      "id": "insight-making-change-easy-to-do-can-make-systems-harder-e6b2b5e6",
+      "claim": "Making change easy to do can make systems harder to reason about.",
+      "context": "The talk separates safe change handling from fast change execution.",
+      "evidence": "But making change easy is not the same thing as, you know, like making change easy to handle, it's not the same thing, it's making change easy to do. You want to make change easily handle but if it may change easy to do, what you're going to do is you're going to end up in a situation in which you're not insuring that you can think about a reason through that change.",
+      "timestamp": 280.68,
       "slide_relation": "elaborates_slide",
       "stance": "asserted",
       "speaker": "instructor",
       "verification": "supported",
       "tags": [
-        "postgres",
-        "connections",
-        "war-story"
+        "change management",
+        "safety"
+      ],
+      "redacted": false
+    },
+    {
+      "id": "insight-manual-production-changes-became-safer-when-ever-9a0c6e0d",
+      "claim": "Manual production changes became safer when every change required a pull request and an explicit service list.",
+      "context": "The team redistributed friction to improve human coordination.",
+      "evidence": "Have we broke this, 12 cycle was, we actually did this thing where we introduced manual changes in production, anything we had to do, because there's still sshnn you have to lock it via a PR, and we had specially enlist everything required.",
+      "timestamp": 674.94,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "partially_supported",
+      "tags": [
+        "pull requests",
+        "operations",
+        "backpressure"
+      ],
+      "redacted": false
+    },
+    {
+      "id": "insight-adding-workers-worsened-database-performance-by--461f79d1",
+      "claim": "Adding workers worsened database performance by increasing contention and connections.",
+      "context": "The team initially responded to slow queries by increasing concurrency.",
+      "evidence": "You can say, oh hey, think you're really slow, add more workers, which adds contention to Postgres, connections to Postgres, and slows it down. Not using the open account settings, by the way, literally just having a massive amount of connections available in postgres, you can meet some queries up to 45 slower,",
+      "timestamp": 813.779,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "supported",
+      "tags": [
+        "Postgres",
+        "concurrency",
+        "contention"
+      ],
+      "redacted": false
+    },
+    {
+      "id": "insight-volunteer-infrastructure-teams-need-approachabil-533cf21c",
+      "claim": "Volunteer infrastructure teams need approachability, safety, and transparency because their available time is limited.",
+      "context": "The team receives only a few volunteer hours from each person weekly.",
+      "evidence": "Ultimately though, our key constraint, uh, you know, Hazel started to hit on it a little bit, is we have volunteers, this is all opt-in, we aren't paying anybody, these are people who do this because they want to do it,",
+      "timestamp": 1562.039,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "partially_supported",
+      "tags": [
+        "volunteers",
+        "approachability",
+        "documentation"
       ],
       "redacted": false
     }
   ],
   "build_ideas": [
     {
-      "id": "build-fsync-iops-benchmark-your-storage-toy-780a71e6",
-      "title": "fsync/IOPS benchmark-your-storage toy",
-      "pitch": "Write a tiny script that measures real fsync/s and IOPS on whatever disk you run it on and compares the result against the '300 IOPS, 12 fsync/s, same as a 2004 SD card' number from the talk. It's a fun, quick way to get a gut feeling for how bad 'silently degraded' storage can look next to modern SSD numbers.",
-      "effort": "afternoon",
-      "you_will_learn": "How to directly measure fsync and IOPS throughput on a real disk and interpret what those numbers mean for a database-backed app",
+      "id": "build-postgres-connection-pressure-lab-d6be7a30",
+      "title": "Postgres Connection Pressure Lab",
+      "pitch": "Build a local database demo that shows how adding workers and connections slows queries. It matters because the failure mode is counterintuitive and easy to reproduce.",
+      "effort": "weekend",
+      "you_will_learn": "How connection contention changes database latency.",
       "stack_hint": [
-        "fio or a small custom fsync loop",
-        "bash/python"
+        "Postgres",
+        "Sidekiq"
       ],
       "origin": {
-        "evidence": "so we had 300 and 12 Fsyncs per second, which is, I believe, about the same as an SD card from 2004..",
-        "timestamp": 965.76
+        "evidence": "You can say, oh hey, think you're really slow, add more workers, which adds contention to Postgres, connections to Postgres, and slows it down.",
+        "timestamp": 813.779
+      },
+      "redacted": false
+    },
+    {
+      "id": "build-infrastructure-change-notebook-ea48b505",
+      "title": "Infrastructure Change Notebook",
+      "pitch": "Build a small repository that records infrastructure changes, reasons, plans, and recovery notes in Markdown. It matters because the next operator can continue work without rediscovering hidden context.",
+      "effort": "weekend",
+      "you_will_learn": "How to turn operational history into usable team documentation.",
+      "stack_hint": [
+        "Markdown",
+        "Terraform Cloud",
+        "NixOS"
+      ],
+      "origin": {
+        "evidence": "And we look for things like good PR comments, right, things that express why you're making the change you're making, because obviously the code says what you're doing, why are you doing it, like, why did you need to go affect this change in the infrastructure.",
+        "timestamp": 2247.48
+      },
+      "redacted": false
+    },
+    {
+      "id": "build-declarative-change-previewer-8018c5f1",
+      "title": "Declarative Change Previewer",
+      "pitch": "Build a toy infrastructure editor that previews resource changes before applying them. It matters because predictable previews make experimentation less risky.",
+      "effort": "weekend",
+      "you_will_learn": "How declarative plans expose infrastructure changes before execution.",
+      "stack_hint": [
+        "Terraform Cloud",
+        "NixOS"
+      ],
+      "origin": {
+        "evidence": "So you get in this kind of cycle here where, again, in, all engineers here, I'm pretty sure are familiar with get and the PR cycle, right? So, and key is elevating any kind of issues that you're going to have really early on, like way before you actually go apply it, so you get a nice check on your, on your PR, and you know exactly what's going to happen.",
+        "timestamp": 2169.599
       },
       "redacted": false
     }
   ],
-  "agent_prompts": [],
+  "agent_prompts": [
+    {
+      "id": "prompt-build-a-plan-first-config-tool-13b1bce0",
+      "title": "Build a Plan-First Config Tool",
+      "what_it_does": "Creates a local declarative configuration tool that previews changes and applies approved plans.",
+      "prompt": "Create a small command-line tool in a new repository that manages a JSON file describing services and their versions. Implement three commands: `plan`, `apply`, and `show`. `plan` must compare the desired JSON with a stored applied-state JSON and print additions, removals, and modifications without changing files. `apply` must require a previously generated plan identifier before updating applied state. Reject malformed configuration and unknown service names. Add unit tests for no-op plans, version changes, additions, removals, and rejected applies. Use only the language standard library. Add a README with examples and design constraints. Validate with `npm test` and `node cli.js plan examples/basic.json`. Expected output is passing tests plus a readable plan showing at least one proposed change.",
+      "prerequisites": [
+        "Node.js installed",
+        "Empty repository",
+        "Git available"
+      ],
+      "origin": {
+        "evidence": "The workflow is, you go edit a file, you go do a PR, you go see the result of the plan, and you go apply it, right?",
+        "timestamp": 2169.599
+      },
+      "tested": false,
+      "redacted": false
+    }
+  ],
   "callbacks": [],
   "glossary": [
     {
-      "term": "Sidekiq",
-      "definition": "A background job processing queue system used by Mastodon/Ruby apps.",
-      "timestamp": 0
+      "term": "NFS",
+      "definition": "A network filesystem that lets machines access files stored elsewhere.",
+      "timestamp": 120
     },
     {
-      "term": "NFS",
-      "definition": "Network File System, a protocol for accessing files over a network as if local.",
-      "timestamp": 0
+      "term": "Sidekiq",
+      "definition": "A background-job system commonly used by Ruby applications.",
+      "timestamp": 250
     },
     {
       "term": "fsync",
-      "definition": "A system call that forces data to be physically written to disk before returning, used as a measure of storage write performance.",
-      "timestamp": 0
+      "definition": "An operation that forces buffered data to be written to storage.",
+      "timestamp": 470
+    },
+    {
+      "term": "tmpfs",
+      "definition": "A filesystem stored in memory instead of persistent disk.",
+      "timestamp": 390
     },
     {
       "term": "NixOS",
-      "definition": "A Linux distribution built around declarative, reproducible system configuration.",
-      "timestamp": 0
+      "definition": "An operating system configured through reproducible, declarative definitions.",
+      "timestamp": 150
     },
     {
       "term": "Terraform Cloud",
-      "definition": "A hosted service for running declarative infrastructure-as-code (Terraform) workflows across cloud providers.",
-      "timestamp": 0
+      "definition": "A service for planning and applying declarative infrastructure changes.",
+      "timestamp": 760
+    },
+    {
+      "term": "multi-cloud",
+      "definition": "An infrastructure setup that uses multiple cloud providers.",
+      "timestamp": 730
     }
   ],
   "announcements": [],

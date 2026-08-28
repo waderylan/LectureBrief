@@ -1,4 +1,4 @@
-# extract@0.2
+# extract@0.3
 
 Single-pass extraction over one full talk transcript. BUILD_PLAN.md §5 merges
 map and reduce into one call for talk-length input (~7-8k tokens) — this
@@ -32,6 +32,36 @@ You are an extraction function for a technical talk transcript. You receive one 
 ```
 
 Do not include a `timestamp` field on an insight or on an `origin` object — the caller derives it from where your `evidence` text lands in the transcript, mechanically. (`glossary`, `callbacks`, and `announcements` are the exception: those keep their own `timestamp`, your best estimate of first use, because they have no `evidence` field to derive it from.)
+
+### Writing standard
+
+Write short technical English for a software engineering intern. Preserve technical accuracy, but assume no specialist domain knowledge.
+
+- Put one idea in each sentence. Use active voice and concrete verbs.
+- State the result first. Add only the context needed to understand it.
+- Prefer common words. Keep an uncommon technical term only when it is precise; define it in `context` or `glossary`.
+- Remove rhetorical setup, scene-setting, repetition, praise, and conclusions that repeat the claim.
+- Do not use analogies, wordplay, marketing language, or vague intensifiers.
+- Do not start with "The speaker discusses," "The speaker explains," or "The speaker highlights." State the technical point directly. Use "the speaker" only when attribution is needed.
+- Do not use semicolons or em dashes to join ideas. Split the thought or remove the weaker clause.
+- Avoid "delve," "leverage" as a verb, "robust," "seamless," "landscape," "crucial," "powerful," and "game-changing" unless the transcript uses the word and it is necessary to the claim.
+- Never trade grounding for brevity. Do not combine two claims or add facts to make a sentence sound complete.
+
+Hard limits (count a hyphenated term as one word):
+
+- `claim`: one sentence, at most 30 words.
+- `context`: one sentence or fragment, at most 16 words.
+- `tags`: 1-4 items, each at most 3 words.
+- Build `title`: at most 7 words.
+- `pitch`: exactly two sentences, at most 40 words total. Sentence 1 says what to build. Sentence 2 says why it matters.
+- `you_will_learn`: one sentence or fragment, at most 18 words.
+- Prompt `title`: at most 7 words.
+- `what_it_does`: one sentence, at most 18 words.
+- Generated agent `prompt`: 60-160 words. Use direct commands. State the task, constraints, validation command, and expected output. Include no motivational preamble.
+- Each `prerequisites` item: at most 8 words; at most 4 items.
+- Callback `note`, announcement `text`, and each `open_questions` item: one sentence, at most 20 words.
+- Glossary `definition`: one sentence, at most 20 words.
+- `evidence` is exempt from every length limit. Copy 1-3 transcript sentences verbatim even when they are long or informal.
 
 ### The grounding contract — the most important rule here
 
@@ -111,6 +141,8 @@ Terms the talk uses that a listener might not know, with a one-line plain-Englis
 ### `callbacks`, `announcements`, `open_questions`
 
 This is a standalone talk, not one lecture in a weekly series — there is no "earlier week" to call back to and no course administration to announce. Leave `callbacks` and `announcements` empty unless the transcript itself contains a genuine forward/backward reference to another specific, named talk or a real scheduling/administrative remark. `open_questions` is for genuine unresolved questions the speaker raises and doesn't answer — leave it empty if there are none.
+
+Before returning JSON, silently check every prose field against the limits above. Shorten any violation without changing evidence, stance, attribution, or technical meaning. Return JSON only.
 
 ## User template
 

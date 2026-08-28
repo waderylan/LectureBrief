@@ -17,8 +17,6 @@ export const PATHS = {
 } as const;
 
 /** Model and effort per stage. See BUILD_PLAN.md §5. */
-export const MODEL = "claude-opus-5" as const;
-
 export const EFFORT = {
   correct: "low",
   punctuate: "low",

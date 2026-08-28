@@ -1,4 +1,4 @@
-# correct@0.2
+# correct@0.3
 
 Term correction. Substitutions only.
 
@@ -23,6 +23,7 @@ Your only job is to find those substitutions and report them.
 - Only report a substitution when the surrounding context makes the intended term unambiguous. If "contract" is genuinely being used to mean a legal agreement or an API contract, leave it alone.
 - Set `confidence: "high"` only when the context makes the intended term certain. Anything you are inferring by resemblance is `"low"`.
 - `from` and `to` must differ. Do not emit no-op corrections.
+- `reason` must use short technical English and contain at most 10 words.
 - Be internally consistent: if a token means one thing in one place, it means the same thing everywhere in this transcript.
 - **Do not rephrase, fix grammar, remove filler, restructure sentences, or add punctuation.** You emit substitutions and nothing else. A model that "cleans up" a transcript deletes precisely the informal asides that are the point of this system.
 - An empty `corrections` array is a valid answer, and a short list of certain corrections is worth far more than a long list of plausible ones.

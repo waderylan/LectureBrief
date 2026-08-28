@@ -21,7 +21,7 @@ This supersedes ARCHITECTURE.md where they conflict. Deltas are listed in §1; e
 | §7.3 under $2/lecture | **Revisit later** | That budget assumed a mid-tier model. See §5. Irrelevant at demo scale; flagged, not solved. |
 | CSCI 599 framing | **Dropped** | Nothing in the product names a course, an instructor, or an institution. |
 | AD-1 hosted STT + AD-4 map-reduce | **Dropped for MVP** | Free YouTube auto-captions; single-pass extraction. Both are consequences of 38-minute talks replacing 2-hour lectures. See §5. |
-| §5 model: Opus 5 via API | **Replaced** | Headless Claude Code (`claude -p`) on Sonnet 5, behind a one-file seam. Zero marginal cash cost. |
+| §5 model: Opus 5 via API | **Replaced** | Headless Codex (`codex exec`) on GPT-5.6 Luna, behind a one-file provider seam. Claude is an explicit compatibility option. |
 
 Everything else — the grounding contract, the three-way slide comparison, the redact-before-extract ordering, the verification pass, the tested-prompt gate, the coursework exclusion, generic attribution — carries over unchanged. Those are what make it not a generic summarizer.
 
@@ -37,7 +37,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 | Audio fetch | `yt-dlp` then `ffmpeg` to 16kHz mono | Talks only; nothing recorded by hand. |
 | Transcription | YouTube auto-captions via `yt-dlp --write-auto-subs` | Free, already timestamped, no API key. Costs diarization and keyterm boosting — see §5. Reversible: the `transcribe` stage keeps a provider seam. |
 | Slide text | `unpdf` | Text PDFs. Falls back to a vision pass only if a specific deck is image-only. |
-| LLM | Headless Claude Code (`claude -p`), Sonnet 5 | Bills against the operator's subscription, not API credits. Behind a one-file seam (`llm.ts`) so production swaps to the Anthropic SDK. Effort per stage (§5). |
+| LLM | Headless Codex (`codex exec`), GPT-5.6 Luna | Reuses Codex CLI authentication. `LLM_PROVIDER=claude` remains an explicit compatibility mode. Effort per stage (§5). |
 | Schema/validation | `zod` | One schema file shared by pipeline and site. This is the §9 data contract, in code. |
 | Site | Next.js App Router + Tailwind | Server components for reads, server actions for comments. |
 | DB | Postgres (Neon) + Drizzle | Free tier. Drizzle because migrations are plain SQL you can read. |
@@ -71,7 +71,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 ### Day 1 — Transcription
 
 - [x] Repo scaffold: pnpm workspace, the four packages above, `tsconfig`, `.env.example`.
-- [x] LLM adapter (`llm.ts`) over headless Claude Code, with zod validation and one retry. Verified: clean JSON, verbatim evidence spans, correct stance classification.
+- [x] LLM adapter (`llm.ts`) over headless Codex, defaulting to GPT-5.6 Luna, with zod validation and one retry. Verified live: clean JSON, verbatim evidence spans, and correct stance classification. Claude remains opt-in.
 - [x] `brief fetch <url>` pulls auto-captions and audio via `yt-dlp`, caching by video id.
 - [x] `brief transcribe` normalizes captions into the transcript shape — timestamps preserved, `speaker: "unclear"`. Output cached. **Re-running must never re-fetch.**
 - [x] Read the raw transcript for the DNS talk and judge jargon quality against the `syllabus.md` glossary. If terms are mangled beyond what the correction pass can fix, record that and reconsider paid STT.
@@ -184,7 +184,7 @@ The last two are the only ones that measure whether the product works. The rest 
 
 ## 5. Model and cost
 
-**MVP runs on headless Claude Code**, not the API. `claude -p` bills against the operator's existing subscription, so marginal cash cost is zero and the model is Sonnet 5 rather than a budget tier. Production swaps to the Anthropic SDK; `packages/pipeline/src/llm.ts` exists to make that a one-file change.
+**MVP runs on headless Codex**, not a direct API integration. `codex exec` reuses the operator's saved CLI authentication and defaults to `gpt-5.6-luna`, the cost-sensitive high-volume tier. `packages/pipeline/src/llm.ts` keeps the provider boundary explicit; set `LLM_PROVIDER=claude` only when compatibility testing requires it. Provider failures never trigger a silent fallback.
 
 | Stage | Effort | Note |
 |---|---|---|
@@ -195,10 +195,7 @@ The last two are the only ones that measure whether the product works. The rest 
 
 **Map-reduce is dropped for talk-length source material.** AD-4 windows the transcript because a 2-hour lecture is 25–30k tokens and recall sags in the middle. A 38-minute talk is ~7,600 tokens — windowing it yields three chunks, which is pure overhead and actively worse, since whole-talk context is exactly what the reduce stage needed windowing to recover. Reinstate windowing if the source ever returns to 2-hour lectures.
 
-**Measured invocation overhead: ~22k tokens per call.** That is Claude Code's harness context and it is the floor. Stripping tools (`--allowed-tools ""`) saves ~10k; `--bare` would save more but refuses OAuth and requires an API key, defeating the point. Two flags are load-bearing rather than cosmetic:
-
-- `--strict-mcp-config --mcp-config '{"mcpServers":{}}'` — a configured-but-unreachable MCP server otherwise stalls every call for its full connect timeout.
-- `--setting-sources ""` — keeps the operator's global `CLAUDE.md` out of extraction context.
+**Headless calls are isolated generation functions.** Codex runs with `--ephemeral`, `--ignore-user-config`, `--ignore-rules`, and a read-only sandbox from the system temp directory. This keeps repository instructions, user settings, tools, and rollout files out of extraction context. The model receives only the versioned function contract and the delimited input on stdin; stdout contains only the final JSON response.
 
 **Transcription is free** (YouTube auto-captions), which removes the only non-token line item and the entire provider bake-off. What it costs is diarization and keyterm boosting. Diarization: AD-2 already permits `speaker: "unclear"` as the default. Keyterm boosting: the correction pass exists precisely to catch jargon, and the glossary in `syllabus.md` feeds it. **Watch for this in the first real output** — if course terms are mangled badly enough that correction can't recover them, that is the finding, and paid STT with keyterm boosting is the fix.
 

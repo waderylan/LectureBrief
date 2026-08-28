@@ -60,52 +60,74 @@ import type { Segment } from "../types.js";
 
 const RawOrigin = z.object({ evidence: z.string().min(1) });
 
+export function wordCount(value: string): number {
+  const words = value.trim().match(/[\p{L}\p{N}]+(?:[-'][\p{L}\p{N}]+)*/gu);
+  return words?.length ?? 0;
+}
+
+function textAtMost(maxWords: number, allowEmpty = false) {
+  const base = allowEmpty ? z.string() : z.string().min(1);
+  return base.refine((value) => wordCount(value) <= maxWords, {
+    message: `must contain at most ${maxWords} words`,
+  });
+}
+
+function textBetween(minWords: number, maxWords: number) {
+  return z.string().refine(
+    (value) => {
+      const count = wordCount(value);
+      return count >= minWords && count <= maxWords;
+    },
+    { message: `must contain between ${minWords} and ${maxWords} words` },
+  );
+}
+
 // No `.default()` on these: it makes zod's inferred *input* type optional
 // while the *output* type stays required, and `z.infer` picks up that split
 // (see the pre-existing `Segment.speaker` mismatch this codebase already has
 // from Day 1/2). The extraction prompt lists every field in its example JSON,
 // including empty-array cases, so the model always supplies them.
 const RawInsight = z.object({
-  claim: z.string().min(1),
-  context: z.string(),
+  claim: textAtMost(30),
+  context: textAtMost(16, true),
   evidence: z.string().min(1),
   slide_relation: SlideRelation,
   stance: Stance,
   speaker: Speaker,
-  tags: z.array(z.string()),
+  tags: z.array(textAtMost(3)).min(1).max(4),
 });
 type RawInsight = z.infer<typeof RawInsight>;
 
 const RawBuildIdea = z.object({
-  title: z.string().min(1),
-  pitch: z.string().min(1),
+  title: textAtMost(7),
+  pitch: textAtMost(40),
   effort: BuildEffort,
-  you_will_learn: z.string().min(1),
+  you_will_learn: textAtMost(18),
   stack_hint: z.array(z.string()),
   origin: RawOrigin,
 });
 type RawBuildIdea = z.infer<typeof RawBuildIdea>;
 
 const RawAgentPrompt = z.object({
-  title: z.string().min(1),
-  what_it_does: z.string().min(1),
-  prompt: z.string().min(1),
-  prerequisites: z.array(z.string()),
+  title: textAtMost(7),
+  what_it_does: textAtMost(18),
+  prompt: textBetween(60, 160),
+  prerequisites: z.array(textAtMost(8)).max(4),
   origin: RawOrigin,
 });
 type RawAgentPrompt = z.infer<typeof RawAgentPrompt>;
 
-const RawExtraction = z.object({
+export const RawExtraction = z.object({
   lead_insight: RawInsight,
   insights: z.array(RawInsight),
   build_ideas: z.array(RawBuildIdea),
   agent_prompts: z.array(RawAgentPrompt),
-  callbacks: z.array(z.object({ to_week: z.number(), note: z.string().min(1), timestamp: z.number() })),
+  callbacks: z.array(z.object({ to_week: z.number(), note: textAtMost(20), timestamp: z.number() })),
   glossary: z.array(
-    z.object({ term: z.string().min(1), definition: z.string().min(1), timestamp: z.number() }),
+    z.object({ term: z.string().min(1), definition: textAtMost(20), timestamp: z.number() }),
   ),
-  announcements: z.array(z.object({ text: z.string().min(1), timestamp: z.number() })),
-  open_questions: z.array(z.string()),
+  announcements: z.array(z.object({ text: textAtMost(20), timestamp: z.number() })),
+  open_questions: z.array(textAtMost(20)),
 });
 
 export const ExtractResult = z.object({
