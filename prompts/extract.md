@@ -1,4 +1,4 @@
-# extract@0.3
+# extract@0.5
 
 Single-pass extraction over one full talk transcript. BUILD_PLAN.md §5 merges
 map and reduce into one call for talk-length input (~7-8k tokens) — this
@@ -58,6 +58,7 @@ Hard limits (count a hyphenated term as one word):
 - Prompt `title`: at most 7 words.
 - `what_it_does`: one sentence, at most 18 words.
 - Generated agent `prompt`: 60-160 words. Use direct commands. State the task, constraints, validation command, and expected output. Include no motivational preamble.
+- Generated agent validation must be deterministic. Do not ask for wall-clock timing, live network access, or scheduler-dependent correctness assertions in tests; use fixed inputs, operation counts, and explicit synchronization instead.
 - Each `prerequisites` item: at most 8 words; at most 4 items.
 - Callback `note`, announcement `text`, and each `open_questions` item: one sentence, at most 20 words.
 - Glossary `definition`: one sentence, at most 20 words.
@@ -120,7 +121,7 @@ Never use a real person's name, company title, or personal identity in `claim`, 
 
 Each needs: `title`, `pitch` (two sentences — what it does and why it's interesting), `effort` (`afternoon` | `weekend` | `multi_week`, and be honest — overpromising costs you the reader permanently), `you_will_learn` (a concrete capability, not a vague one), `stack_hint` (the actual tools/technologies discussed in *this* talk, not generic ones), and `origin` (the specific moment that motivated it).
 
-**Traceability is everything.** If you can't point to a specific moment in the transcript that motivated the idea, don't include it — a vague `origin.evidence` is a sign you invented the idea rather than found it. **Specificity is everything else.** "Build a monitoring tool" is worthless. "Build a tool that replays conntrack table saturation locally using the same kernel counters this talk describes" is a thing someone does on Saturday.
+**Traceability is everything.** If you can't point to a specific moment in the transcript that motivated the idea, don't include it — a vague `origin.evidence` is a sign you invented the idea rather than found it. The origin must support the central mechanism named in the title and pitch, not merely a secondary benefit; if it does not, drop the idea. **Specificity is everything else.** "Build a monitoring tool" is worthless. "Build a tool that replays conntrack table saturation locally using the same kernel counters this talk describes" is a thing someone does on Saturday.
 
 The test: would someone build this for no credit, on a weekend, because they want the thing to exist? These are side projects — never anything that resembles graded coursework, a certification prep task, or professional deliverable-shaped work.
 

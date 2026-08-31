@@ -127,19 +127,20 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 - [x] Routes: `/`, `/w/[week]`, `/w/[week]#[id]`, `/archive`, `/build`, `/prompts`. (`/t/[tag]` is the first thing to cut if the week gets tight.)
 - [x] Lecture page IA exactly as ARCHITECTURE.md §10 orders it: lead insight, then off the slides, then build this, then prompts, then callbacks, glossary, announcements, and **on the slides collapsed at the bottom**. Do not merge it chronologically.
 - [x] Comments anchored to a specific item id, not to a weekly thread. Signed-in users only. Server action, optimistic render.
-- [ ] Copy-link on every item; copy-text on every prompt body, clean, **working on mobile**. This is the most-used control on the site.
+- [x] Copy-link on every item; copy-text on every prompt body, clean, **working on mobile**. This is the most-used control on the site.
 - [x] Standing label on the build and prompt sections, on `/build`, on `/prompts`, and on a deep link to a single item: *Side projects for extended learning. Not for coursework or assignments.* Always rendered, never conditional on a flag.
-- [ ] `noindex` in meta and `robots.txt`. Deploy. Ugly is fine today.
+- [x] `noindex` in meta and `robots.txt`.
+- [ ] Deploy. Ugly is fine today.
 
 *Gate: deployed; you can sign up and comment on a real insight.*
 
 ### Day 6 — Prompts only. No code.
 
-- [ ] Run `brief extract` twenty-plus times across all three talks. Read every output.
-- [ ] Tune toward **scarcity**. Six sharp insights beat twenty padded ones. Remove implied counts; allow zero build ideas for a talk that doesn't warrant any.
-- [ ] Kill every build idea whose `origin` is vague. Vague provenance means the model invented it.
-- [ ] **Personally run every generated agent prompt** in a fresh session. `tested: false` does not publish, no exceptions. A prompt that fails on paste costs a reader ten minutes and costs the site its credibility permanently.
-- [ ] Spot-check 20 insights by hand for specificity the evidence doesn't support. This is the check that finds real problems.
+- [x] Run `brief extract` twenty-plus times across all three talks. Read every output.
+- [x] Tune toward **scarcity**. Six sharp insights beat twenty padded ones. Remove implied counts; allow zero build ideas for a talk that doesn't warrant any.
+- [x] Kill every build idea whose `origin` is vague. Vague provenance means the model invented it.
+- [x] **Personally run every generated agent prompt** in a fresh session. `tested: false` does not publish, no exceptions. A prompt that fails on paste costs a reader ten minutes and costs the site its credibility permanently.
+- [x] Spot-check 20 insights by hand for specificity the evidence doesn't support. This is the check that finds real problems.
 
 *This day is not slack and must not be traded for features. The extraction and applied-section prompts are what determine whether any of this is worth showing to anyone.*
 
