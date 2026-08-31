@@ -4,6 +4,7 @@ import { getAllBuildIdeas } from "@/lib/lectures";
 import { BuildIdeaCard } from "@/components/build-idea-card";
 import { SideProjectsLabel } from "@/components/side-projects-label";
 import type { BuildIdea } from "@lecturebrief/schema";
+import { commentsEnabled } from "@/lib/runtime";
 
 export const metadata: Metadata = {
   title: "Build",
@@ -46,7 +47,7 @@ export default async function BuildPage({ searchParams }: PageProps<"/build">) {
         <div className="grid gap-5 lg:grid-cols-2">
           {filtered.map(({ week, idea }) => (
             <div key={idea.id} className="flex flex-col gap-2">
-              <BuildIdeaCard idea={idea} week={week} />
+              <BuildIdeaCard idea={idea} week={week} commentsEnabled={commentsEnabled} />
               <Link href={`/w/${week}`} className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#6f6a61]">
                 from week {week}
               </Link>

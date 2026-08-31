@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
+import { commentsEnabled } from "@/lib/runtime";
 
 export async function AuthStatus() {
+  if (!commentsEnabled) {
+    return (
+      <span className="order-2 ml-auto text-[10px] font-semibold uppercase tracking-[0.1em] text-[#6f6a61] sm:order-3">
+        Read-only preview
+      </span>
+    );
+  }
+
   const session = await auth();
 
   if (!session?.user) {

@@ -14,10 +14,12 @@ export function CommentThread({
   itemId,
   initialComments,
   signedIn,
+  enabled = true,
 }: {
   itemId: string;
   initialComments: CommentView[];
   signedIn: boolean;
+  enabled?: boolean;
 }) {
   const [comments, setComments] = useState(initialComments);
   const [optimisticComments, addOptimistic] = useOptimistic(
@@ -49,6 +51,8 @@ export function CommentThread({
       }
     });
   }
+
+  if (!enabled) return null;
 
   return (
     <div className="mt-2 flex flex-col gap-3 border-t border-[#c9c1b4] pt-4">

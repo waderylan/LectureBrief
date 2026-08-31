@@ -5,6 +5,7 @@ import { InsightCard } from "./insight-card";
 import { BuildIdeaCard } from "./build-idea-card";
 import { PromptCard } from "./prompt-card";
 import { SideProjectsLabel } from "./side-projects-label";
+import { commentsEnabled } from "@/lib/runtime";
 
 /**
  * Section order is fixed by ARCHITECTURE.md §10 and is not chronological:
@@ -13,7 +14,7 @@ import { SideProjectsLabel } from "./side-projects-label";
  * recap. Reordering this "to improve it" is explicitly the thing not to do.
  */
 export async function LecturePage({ lecture }: { lecture: LectureView }) {
-  const session = await auth();
+  const session = commentsEnabled ? await auth() : null;
   const signedIn = Boolean(session?.user);
 
   const allItemIds = [
@@ -44,6 +45,7 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
           lead
           comments={commentsByItem.get(lecture.leadInsight.id) ?? []}
           signedIn={signedIn}
+          commentsEnabled={commentsEnabled}
         />
       </section>
 
@@ -60,6 +62,7 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
               week={lecture.week}
               comments={commentsByItem.get(insight.id) ?? []}
               signedIn={signedIn}
+              commentsEnabled={commentsEnabled}
             />
           ))}
         </section>
@@ -81,6 +84,7 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
               week={lecture.week}
               comments={commentsByItem.get(idea.id) ?? []}
               signedIn={signedIn}
+              commentsEnabled={commentsEnabled}
             />
           ))
         )}
@@ -102,6 +106,7 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
               week={lecture.week}
               comments={commentsByItem.get(prompt.id) ?? []}
               signedIn={signedIn}
+              commentsEnabled={commentsEnabled}
             />
           ))
         )}
@@ -156,6 +161,7 @@ export async function LecturePage({ lecture }: { lecture: LectureView }) {
                 week={lecture.week}
                 comments={commentsByItem.get(insight.id) ?? []}
                 signedIn={signedIn}
+                commentsEnabled={commentsEnabled}
               />
             ))}
           </div>

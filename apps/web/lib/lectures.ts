@@ -1,15 +1,30 @@
 /**
- * Read path for published content. Reads only from Postgres — never
- * `content/*.json` directly — because a lecture/item row's presence there is
- * itself the "approved, not redacted/untested" claim (see `packages/db`'s
- * schema header and `publish.ts`). Everything here is server-only.
+ * Read path for published content. Postgres remains the interactive source
+ * of truth. Read-only deployments use the committed canonical documents and
+ * reapply the publication filters before rendering.
  */
 
 import "server-only";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@lecturebrief/db";
 import type { CommentView } from "@/app/actions/comments";
-import { Insight, BuildIdea, AgentPrompt } from "@lecturebrief/schema";
+import {
+  Insight,
+  BuildIdea,
+  AgentPrompt,
+  LectureDocument,
+  type LectureDocument as LectureDocumentType,
+} from "@lecturebrief/schema";
+import lecture01 from "../../../content/lecture-01.json";
+import lecture02 from "../../../content/lecture-02.json";
+import lecture03 from "../../../content/lecture-03.json";
+import { usesCanonicalContent } from "./runtime";
+
+/** Use approved canonical files for a read-only deployment without hosted Postgres. */
+const canonicalLectures = [lecture01, lecture02, lecture03]
+  .map((document) => LectureDocument.parse(document))
+  .filter((document) => document.status === "approved")
+  .sort((a, b) => b.week - a.week);
 
 export interface LectureView {
   week: number;
@@ -67,6 +82,28 @@ function toView(
   };
 }
 
+function canonicalToView(document: LectureDocumentType): LectureView {
+  const visibleInsights = [document.lead_insight, ...document.insights].filter((item) => !item.redacted);
+
+  return {
+    week: document.week,
+    date: document.date,
+    title: document.title,
+    leadInsight: document.lead_insight,
+    offSlides: visibleInsights.filter(
+      (item) => item.id !== document.lead_insight.id && item.slide_relation !== "on_slides",
+    ),
+    onSlides: visibleInsights.filter(
+      (item) => item.id !== document.lead_insight.id && item.slide_relation === "on_slides",
+    ),
+    buildIdeas: document.build_ideas.filter((item) => !item.redacted),
+    agentPrompts: document.agent_prompts.filter((item) => !item.redacted && item.tested),
+    callbacks: document.callbacks,
+    glossary: document.glossary,
+    announcements: document.announcements,
+  };
+}
+
 async function loadLecture(week: number): Promise<LectureView | null> {
   const [lecture] = await db.select().from(schema.lectures).where(eq(schema.lectures.week, week));
   if (!lecture) return null;
@@ -81,10 +118,18 @@ async function loadLecture(week: number): Promise<LectureView | null> {
 }
 
 export async function getLectureByWeek(week: number): Promise<LectureView | null> {
+  if (usesCanonicalContent) {
+    const document = canonicalLectures.find((lecture) => lecture.week === week);
+    return document ? canonicalToView(document) : null;
+  }
   return loadLecture(week);
 }
 
 export async function getLatestLecture(): Promise<LectureView | null> {
+  if (usesCanonicalContent) {
+    const document = canonicalLectures[0];
+    return document ? canonicalToView(document) : null;
+  }
   const [row] = await db
     .select({ week: schema.lectures.week })
     .from(schema.lectures)
@@ -103,6 +148,14 @@ export interface ArchiveEntry {
 }
 
 export async function getArchive(): Promise<ArchiveEntry[]> {
+  if (usesCanonicalContent) {
+    return canonicalLectures.map((lecture) => ({
+      week: lecture.week,
+      date: lecture.date,
+      title: lecture.title,
+      dek: lecture.lead_insight.claim,
+    }));
+  }
   const lectures = await db
     .select({ week: schema.lectures.week, date: schema.lectures.date, title: schema.lectures.title })
     .from(schema.lectures)
@@ -128,6 +181,13 @@ export interface BuildIdeaWithWeek {
 }
 
 export async function getAllBuildIdeas(): Promise<BuildIdeaWithWeek[]> {
+  if (usesCanonicalContent) {
+    return canonicalLectures.flatMap((lecture) =>
+      lecture.build_ideas
+        .filter((idea) => !idea.redacted)
+        .map((idea) => ({ week: lecture.week, idea })),
+    );
+  }
   const rows = await db
     .select({ week: schema.items.lectureWeek, data: schema.items.data })
     .from(schema.items)
@@ -142,6 +202,13 @@ export interface AgentPromptWithWeek {
 }
 
 export async function getAllAgentPrompts(): Promise<AgentPromptWithWeek[]> {
+  if (usesCanonicalContent) {
+    return canonicalLectures.flatMap((lecture) =>
+      lecture.agent_prompts
+        .filter((prompt) => !prompt.redacted && prompt.tested)
+        .map((prompt) => ({ week: lecture.week, prompt })),
+    );
+  }
   const rows = await db
     .select({ week: schema.items.lectureWeek, data: schema.items.data })
     .from(schema.items)
@@ -153,7 +220,7 @@ export async function getAllAgentPrompts(): Promise<AgentPromptWithWeek[]> {
 /** Comments anchored to a specific item id — ARCHITECTURE.md §14's planned direction, brought forward. */
 export async function getCommentsForItems(itemIds: string[]): Promise<Map<string, CommentView[]>> {
   const map = new Map<string, CommentView[]>();
-  if (itemIds.length === 0) return map;
+  if (usesCanonicalContent || itemIds.length === 0) return map;
 
   const rows = await db
     .select({

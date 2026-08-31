@@ -22,12 +22,14 @@ export function InsightCard({
   lead = false,
   comments = [],
   signedIn = false,
+  commentsEnabled = true,
 }: {
   insight: Insight;
   week: number;
   lead?: boolean;
   comments?: CommentView[];
   signedIn?: boolean;
+  commentsEnabled?: boolean;
 }) {
   return (
     <article
@@ -55,7 +57,7 @@ export function InsightCard({
       <div>
         <CopyButton label="Copy link" text={`/w/${week}#${insight.id}`} absolute />
       </div>
-      <CommentThread itemId={insight.id} initialComments={comments} signedIn={signedIn} />
+      <CommentThread itemId={insight.id} initialComments={comments} signedIn={signedIn} enabled={commentsEnabled} />
     </article>
   );
 }

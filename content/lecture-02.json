@@ -4,12 +4,12 @@
   "date": "2026-01-19",
   "title": "Hacking the Pachyderm",
   "status": "approved",
-  "prompt_version": "extract@0.3",
-  "generated_at": "2026-08-28T22:36:50.788Z",
+  "prompt_version": "extract@0.5",
+  "generated_at": "2026-08-31T20:44:54.281Z",
   "lead_insight": {
-    "id": "insight-resilient-systems-require-adapting-the-technical-c87e4272",
-    "claim": "Resilient systems require adapting the technical system and the human system together.",
-    "context": "The migration exposed failures that no single root-cause fix could prevent.",
+    "id": "insight-system-resilience-requires-adapting-the-whole-te-c87e4272",
+    "claim": "System resilience requires adapting the whole technical and social system, because fixing one root cause only moves problems elsewhere.",
+    "context": "A migration exposed interacting infrastructure and human workflow failures.",
     "evidence": "Systems resilient requires systemic adoption, and any sort of trying to like solve one particular insight, or one particular problem, we'll solve that one. The system is a healthy, growing organism that involves technical people, social things, like all of these coming together, and that's what Villas really needed.",
     "timestamp": 224.58,
     "slide_relation": "elaborates_slide",
@@ -18,147 +18,161 @@
     "verification": "partially_supported",
     "tags": [
       "resilience",
-      "systems",
-      "teamwork"
+      "systems thinking"
     ],
     "redacted": false
   },
   "insights": [
     {
-      "id": "insight-making-change-easy-to-do-can-make-systems-harder-e6b2b5e6",
-      "claim": "Making change easy to do can make systems harder to reason about.",
-      "context": "The talk separates safe change handling from fast change execution.",
+      "id": "insight-making-change-easy-means-making-it-easy-to-proce-e6b2b5e6",
+      "claim": "Make changes easy to process, not merely easy to execute, because people need time, backpressure, and circuit breakers.",
+      "context": "Production changes became safer after adding friction through pull requests and explicit service lists.",
       "evidence": "But making change easy is not the same thing as, you know, like making change easy to handle, it's not the same thing, it's making change easy to do. You want to make change easily handle but if it may change easy to do, what you're going to do is you're going to end up in a situation in which you're not insuring that you can think about a reason through that change.",
       "timestamp": 280.68,
       "slide_relation": "elaborates_slide",
-      "stance": "asserted",
-      "speaker": "instructor",
-      "verification": "supported",
-      "tags": [
-        "change management",
-        "safety"
-      ],
-      "redacted": false
-    },
-    {
-      "id": "insight-manual-production-changes-became-safer-when-ever-9a0c6e0d",
-      "claim": "Manual production changes became safer when every change required a pull request and an explicit service list.",
-      "context": "The team redistributed friction to improve human coordination.",
-      "evidence": "Have we broke this, 12 cycle was, we actually did this thing where we introduced manual changes in production, anything we had to do, because there's still sshnn you have to lock it via a PR, and we had specially enlist everything required.",
-      "timestamp": 674.94,
-      "slide_relation": "elaborates_slide",
-      "stance": "asserted",
+      "stance": "opinion",
       "speaker": "instructor",
       "verification": "partially_supported",
       "tags": [
-        "pull requests",
-        "operations",
-        "backpressure"
+        "change management",
+        "human factors"
       ],
       "redacted": false
     },
     {
-      "id": "insight-adding-workers-worsened-database-performance-by--461f79d1",
-      "claim": "Adding workers worsened database performance by increasing contention and connections.",
-      "context": "The team initially responded to slow queries by increasing concurrency.",
-      "evidence": "You can say, oh hey, think you're really slow, add more workers, which adds contention to Postgres, connections to Postgres, and slows it down. Not using the open account settings, by the way, literally just having a massive amount of connections available in postgres, you can meet some queries up to 45 slower,",
+      "id": "insight-adding-workers-and-database-connections-can-wors-b5838061",
+      "claim": "Adding workers and database connections can worsen PostgreSQL performance by increasing contention and I/O.",
+      "context": "The migration exposed a feedback loop where slow queries caused more connections and further slowdown.",
+      "evidence": "You can say, oh hey, think you're really slow, add more workers, which adds contention to Postgres, connections to Postgres, and slows it down. Not using the open account settings, by the way, literally just having a massive amount of connections available in postgres, you can meet some queries up to 45 slower, which then means the postgres is going to do a lot more IO, because more things are open in flight, they're just not doing anything.",
       "timestamp": 813.779,
       "slide_relation": "elaborates_slide",
       "stance": "asserted",
       "speaker": "instructor",
       "verification": "supported",
       "tags": [
-        "Postgres",
-        "concurrency",
-        "contention"
+        "PostgreSQL",
+        "capacity"
       ],
       "redacted": false
     },
     {
-      "id": "insight-volunteer-infrastructure-teams-need-approachabil-533cf21c",
-      "claim": "Volunteer infrastructure teams need approachability, safety, and transparency because their available time is limited.",
-      "context": "The team receives only a few volunteer hours from each person weekly.",
-      "evidence": "Ultimately though, our key constraint, uh, you know, Hazel started to hit on it a little bit, is we have volunteers, this is all opt-in, we aren't paying anybody, these are people who do this because they want to do it,",
-      "timestamp": 1562.039,
+      "id": "insight-metrics-cannot-explain-a-system-unless-operators-c1b80f39",
+      "claim": "Metrics do not explain a system without an understanding of what the measurements represent.",
+      "context": "The team had metrics and data but could not initially form a coherent system hypothesis.",
+      "evidence": "And we had, we had metrics, we had data, the only school that you're building to understand the system, and most systems are actually by definition not understandable, and know one thing, whichever obvious, you're wrong. It's like when we saw the 300 iops, when you saw this, and that is that because the file system is only capable of it, or is that because we're only requesting that much, you still can't really narrow anything down, even if you have other pieces, maybe you can't put them together coherently.",
+      "timestamp": 1081.26,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "supported",
+      "tags": [
+        "observability",
+        "metrics"
+      ],
+      "redacted": false
+    },
+    {
+      "id": "insight-declarative-infrastructure-makes-multi-cloud-cha-482671a4",
+      "claim": "Declarative infrastructure makes multi-cloud changes more approachable through a predictable edit, pull request, plan, and apply workflow.",
+      "context": "Terraform Cloud and NixOS moved most infrastructure work into reviewable code.",
+      "evidence": "And ultimately, and again, around building safety and approachability, uh, we get to a very predictable workflow, right? And the workflow is, you go edit a file, you go do a PR, you go see the result of the plan, and you go apply it, right?",
+      "timestamp": 2158.5,
       "slide_relation": "elaborates_slide",
       "stance": "asserted",
       "speaker": "instructor",
       "verification": "partially_supported",
       "tags": [
-        "volunteers",
-        "approachability",
-        "documentation"
+        "infrastructure",
+        "Terraform"
       ],
       "redacted": false
     }
   ],
   "build_ideas": [
     {
-      "id": "build-postgres-connection-pressure-lab-d6be7a30",
-      "title": "Postgres Connection Pressure Lab",
-      "pitch": "Build a local database demo that shows how adding workers and connections slows queries. It matters because the failure mode is counterintuitive and easy to reproduce.",
+      "id": "build-scaling-notes-searcher-341d4083",
+      "title": "Operational Knowledge Search",
+      "pitch": "Build a local search tool that indexes Markdown, GitHub exports, chat exports, and archived messages into one scaling notebook. It matters because operational knowledge often exists across scattered, unstructured sources.",
       "effort": "weekend",
-      "you_will_learn": "How connection contention changes database latency.",
+      "you_will_learn": "Extract, normalize, and search technical knowledge across heterogeneous text files.",
       "stack_hint": [
-        "Postgres",
-        "Sidekiq"
+        "GitHub",
+        "Markdown",
+        "IRC"
       ],
       "origin": {
-        "evidence": "You can say, oh hey, think you're really slow, add more workers, which adds contention to Postgres, connections to Postgres, and slows it down.",
-        "timestamp": 813.779
+        "evidence": "I was going through GitHub portal quests, GitHub merge comments, random things people have posted in Slack messages, of random things people have posted in like archived IRC channels, gists, a little hacker note things MD documents, random web blogs, a mailing list from 2005., literally a mailing list where someone's sandwich, everywhere, actually everywhere.",
+        "timestamp": 534.54
       },
       "redacted": false
     },
     {
-      "id": "build-infrastructure-change-notebook-ea48b505",
-      "title": "Infrastructure Change Notebook",
-      "pitch": "Build a small repository that records infrastructure changes, reasons, plans, and recovery notes in Markdown. It matters because the next operator can continue work without rediscovering hidden context.",
+      "id": "build-terraform-plan-puzzle-482671a4",
+      "title": "Declarative Change Previewer",
+      "pitch": "Build a local tool that turns infrastructure edits into an explicit plan listing affected services and actions. It matters because predictable previews make risky changes easier to review and understand.",
       "effort": "weekend",
-      "you_will_learn": "How to turn operational history into usable team documentation.",
+      "you_will_learn": "Parse declarative configuration and generate deterministic human-readable change plans.",
+      "stack_hint": [
+        "Terraform Cloud",
+        "NixOS",
+        "PRs"
+      ],
+      "origin": {
+        "evidence": "And ultimately, and again, around building safety and approachability, uh, we get to a very predictable workflow, right? And the workflow is, you go edit a file, you go do a PR, you go see the result of the plan, and you go apply it, right?",
+        "timestamp": 2158.5
+      },
+      "redacted": false
+    },
+    {
+      "id": "build-volunteer-infrastructure-backlog-5e3a0fe1",
+      "title": "Volunteer Infrastructure Backlog",
+      "pitch": "Build a tiny backlog application that ranks tasks by time required, documentation quality, and dependency clarity. It matters because volunteers need useful work they can understand and finish in short sessions.",
+      "effort": "weekend",
+      "you_will_learn": "Design task metadata and filtering for asynchronous collaboration.",
       "stack_hint": [
         "Markdown",
-        "Terraform Cloud",
-        "NixOS"
+        "PRs",
+        "Terraform Cloud"
       ],
       "origin": {
-        "evidence": "And we look for things like good PR comments, right, things that express why you're making the change you're making, because obviously the code says what you're doing, why are you doing it, like, why did you need to go affect this change in the infrastructure.",
-        "timestamp": 2247.48
-      },
-      "redacted": false
-    },
-    {
-      "id": "build-declarative-change-previewer-8018c5f1",
-      "title": "Declarative Change Previewer",
-      "pitch": "Build a toy infrastructure editor that previews resource changes before applying them. It matters because predictable previews make experimentation less risky.",
-      "effort": "weekend",
-      "you_will_learn": "How declarative plans expose infrastructure changes before execution.",
-      "stack_hint": [
-        "Terraform Cloud",
-        "NixOS"
-      ],
-      "origin": {
-        "evidence": "So you get in this kind of cycle here where, again, in, all engineers here, I'm pretty sure are familiar with get and the PR cycle, right? So, and key is elevating any kind of issues that you're going to have really early on, like way before you actually go apply it, so you get a nice check on your, on your PR, and you know exactly what's going to happen.",
-        "timestamp": 2169.599
+        "evidence": "So you leveraging that team backlog, and just being very clear, here's the next milestone, here's the next goal, here's what we're after, let people walk up and know, hey, here's a good first issue, right, if you've been away for a while, go pick this, right?",
+        "timestamp": 1898.039
       },
       "redacted": false
     }
   ],
   "agent_prompts": [
     {
-      "id": "prompt-build-a-plan-first-config-tool-13b1bce0",
-      "title": "Build a Plan-First Config Tool",
-      "what_it_does": "Creates a local declarative configuration tool that previews changes and applies approved plans.",
-      "prompt": "Create a small command-line tool in a new repository that manages a JSON file describing services and their versions. Implement three commands: `plan`, `apply`, and `show`. `plan` must compare the desired JSON with a stored applied-state JSON and print additions, removals, and modifications without changing files. `apply` must require a previously generated plan identifier before updating applied state. Reject malformed configuration and unknown service names. Add unit tests for no-op plans, version changes, additions, removals, and rejected applies. Use only the language standard library. Add a README with examples and design constraints. Validate with `npm test` and `node cli.js plan examples/basic.json`. Expected output is passing tests plus a readable plan showing at least one proposed change.",
+      "id": "prompt-review-infrastructure-plans-482671a4",
+      "title": "Build a Change Preview CLI",
+      "what_it_does": "Creates deterministic plans showing which services a configuration change would modify.",
+      "prompt": "Build a small command-line tool called change-preview in Python. Read a YAML file containing services, dependencies, and desired versions, then read a second YAML file describing requested changes. Output a deterministic plain-text plan sorted by service name. Show each affected service, old value, new value, and whether dependencies are also affected. Reject unknown services, malformed versions, and circular dependencies with clear errors. Keep the implementation local and dependency-light. Add fixtures covering no changes, one direct change, one dependency cascade, invalid input, and circular dependencies. Add unit tests. Run `python -m pytest -q` as the validation command. Expected output is a passing test suite and a documented sample plan whose ordering remains identical across repeated runs.",
       "prerequisites": [
-        "Node.js installed",
-        "Empty repository",
-        "Git available"
+        "Python 3.11 installed",
+        "Empty project repository"
       ],
       "origin": {
-        "evidence": "The workflow is, you go edit a file, you go do a PR, you go see the result of the plan, and you go apply it, right?",
-        "timestamp": 2169.599
+        "evidence": "And ultimately, and again, around building safety and approachability, uh, we get to a very predictable workflow, right? And the workflow is, you go edit a file, you go do a PR, you go see the result of the plan, and you go apply it, right?",
+        "timestamp": 2158.5
       },
-      "tested": false,
+      "tested": true,
+      "redacted": false
+    },
+    {
+      "id": "prompt-build-evidence-search-cli-341d4083",
+      "title": "Build a Documentation Miner",
+      "what_it_does": "Indexes scattered technical notes and returns ranked answers with source locations.",
+      "prompt": "Build a local documentation miner in Python. Accept a directory containing Markdown, plain text, GitHub-export text, chat-export text, and IRC-log fixtures. Extract headings, timestamps when present, and source filenames. Build a simple local index without network access. Support a search command that returns the five highest-scoring matching passages, breaking ties by filename and line number. Add a command that reports documents with repeated terms but no headings. Create fixed fixtures containing overlapping operational advice across formats. Add tests for indexing, ranking, tie-breaking, missing timestamps, and empty queries. Run `python -m pytest -q` as the validation command. Expected output is a passing test suite and identical search results across three repeated invocations.",
+      "prerequisites": [
+        "Python 3.11 installed",
+        "Empty project repository",
+        "Sample text fixtures"
+      ],
+      "origin": {
+        "evidence": "I was going through GitHub portal quests, GitHub merge comments, random things people have posted in Slack messages, of random things people have posted in like archived IRC channels, gists, a little hacker note things MD documents, random web blogs, a mailing list from 2005., literally a mailing list where someone's sandwich, everywhere, actually everywhere.",
+        "timestamp": 534.54
+      },
+      "tested": true,
       "redacted": false
     }
   ],
@@ -166,38 +180,63 @@
   "glossary": [
     {
       "term": "NFS",
-      "definition": "A network filesystem that lets machines access files stored elsewhere.",
-      "timestamp": 120
-    },
-    {
-      "term": "Sidekiq",
-      "definition": "A background-job system commonly used by Ruby applications.",
-      "timestamp": 250
-    },
-    {
-      "term": "fsync",
-      "definition": "An operation that forces buffered data to be written to storage.",
-      "timestamp": 470
-    },
-    {
-      "term": "tmpfs",
-      "definition": "A filesystem stored in memory instead of persistent disk.",
-      "timestamp": 390
-    },
-    {
-      "term": "NixOS",
-      "definition": "An operating system configured through reproducible, declarative definitions.",
+      "definition": "A network filesystem that lets machines access files stored on another machine.",
       "timestamp": 150
     },
     {
+      "term": "Sidekiq",
+      "definition": "A background job system commonly used by Ruby applications.",
+      "timestamp": 285
+    },
+    {
+      "term": "backpressure",
+      "definition": "A mechanism that slows incoming work when downstream systems cannot safely process more.",
+      "timestamp": 390
+    },
+    {
+      "term": "circuit breakers",
+      "definition": "Controls that stop repeated operations when a dependent system is failing.",
+      "timestamp": 400
+    },
+    {
+      "term": "fsync",
+      "definition": "An operation that forces buffered file data to persistent storage.",
+      "timestamp": 520
+    },
+    {
+      "term": "IOPS",
+      "definition": "Input-output operations per second, a measure of storage activity.",
+      "timestamp": 505
+    },
+    {
+      "term": "observability",
+      "definition": "The ability to understand internal system behavior from external outputs and measurements.",
+      "timestamp": 225
+    },
+    {
+      "term": "NixOS",
+      "definition": "An operating system built around declarative and reproducible configuration.",
+      "timestamp": 105
+    },
+    {
       "term": "Terraform Cloud",
-      "definition": "A service for planning and applying declarative infrastructure changes.",
-      "timestamp": 760
+      "definition": "A service for planning and applying declarative infrastructure configuration.",
+      "timestamp": 1130
     },
     {
       "term": "multi-cloud",
-      "definition": "An infrastructure setup that uses multiple cloud providers.",
-      "timestamp": 730
+      "definition": "An infrastructure strategy that uses multiple cloud providers.",
+      "timestamp": 1080
+    },
+    {
+      "term": "psychological safety",
+      "definition": "A team condition where people can raise concerns and ideas without fear of punishment.",
+      "timestamp": 790
+    },
+    {
+      "term": "declarative",
+      "definition": "Describing the desired result while leaving execution details to a system.",
+      "timestamp": 1050
     }
   ],
   "announcements": [],

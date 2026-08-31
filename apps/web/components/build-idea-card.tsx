@@ -18,11 +18,13 @@ export function BuildIdeaCard({
   week,
   comments = [],
   signedIn = false,
+  commentsEnabled = true,
 }: {
   idea: BuildIdea;
   week: number;
   comments?: CommentView[];
   signedIn?: boolean;
+  commentsEnabled?: boolean;
 }) {
   return (
     <article id={idea.id} className="editorial-card scroll-mt-20 flex flex-col gap-3 border p-5 sm:p-7">
@@ -45,7 +47,7 @@ export function BuildIdeaCard({
       <div>
         <CopyButton label="Copy link" text={`/w/${week}#${idea.id}`} absolute />
       </div>
-      <CommentThread itemId={idea.id} initialComments={comments} signedIn={signedIn} />
+      <CommentThread itemId={idea.id} initialComments={comments} signedIn={signedIn} enabled={commentsEnabled} />
     </article>
   );
 }

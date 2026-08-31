@@ -4,270 +4,263 @@
   "date": "2026-01-26",
   "title": "So You Wanna Go Fast?",
   "status": "approved",
-  "prompt_version": "extract@0.2",
-  "generated_at": "2026-08-28T18:48:17.974Z",
+  "prompt_version": "extract@0.5",
+  "generated_at": "2026-08-31T20:44:56.157Z",
   "lead_insight": {
-    "id": "insight-a-two-line-change-that-removed-a-single-unnecess-4b925d37",
-    "claim": "A two-line change that removed a single unnecessary string allocation on a byte-to-string-then-map-lookup path increased a production messaging server's throughput by two million messages per second.",
-    "context": "The speaker describes a contribution to the NATS messaging server that inlined a []byte-to-string conversion directly into a map lookup instead of using an intermediate string variable.",
-    "evidence": "So recently, there are, a while ago I guess, there was a contribution made to Nats, which was like a small two line change, and ended up increasing the throughput of the server by like two million messages a second, and all it did was remove an unnecessary string allocation.",
-    "timestamp": 1183.24,
-    "slide_relation": "elaborates_slide",
-    "stance": "attributed",
+    "id": "insight-the-largest-performance-gains-usually-come-from--4310bb9f",
+    "claim": "The largest performance gains usually come from architecture, while code-level optimizations provide smaller returns.",
+    "context": "Choose the system design before tuning individual operations.",
+    "evidence": "And really, code is marginal, I think, in terms of performance, and what I mean by that is really the big wins come from architecture, and so it's important to get your architecture right first, and then you can start to look at more of the code level micro optimizations, because I think that's where your return on investment tends to be a lot smaller.",
+    "timestamp": 2228.449,
+    "slide_relation": "on_slides",
+    "stance": "asserted",
     "speaker": "instructor",
     "verification": "supported",
     "tags": [
-      "performance",
-      "go",
-      "memory",
-      "war-story"
+      "architecture",
+      "performance"
     ],
     "redacted": false
   },
   "insights": [
     {
-      "id": "insight-defer-s-overhead-ballooned-and-then-was-dramatic-be75f03f",
-      "claim": "defer's overhead ballooned and then was dramatically improved in Go 1.2/1.3, crept back up again, and by the time of the talk had settled back to roughly the same ~40ns overhead as a mutex lock/unlock.",
-      "context": "Discussion of whether defer is still considered slow, a long-running community concern.",
-      "evidence": "I mean, it's, to start off with, the I was there's a lot of overhead, but then in like go one two and one three, it really improved dramatically, and it kind of crept back up a little bit, but today it's kind of back at where it was and go on three, which in this case, this is like with a mutex lock unlock, it's like 40 nanoseconds of overhead.",
-      "timestamp": 649.92,
+      "id": "insight-use-channels-to-coordinate-goroutines-but-use-mu-bf299f86",
+      "claim": "Use channels to coordinate goroutines, but use mutexes for shared-state synchronization.",
+      "context": "Channels can make synchronization code more complicated and slower.",
+      "evidence": "I think they're great for like coordinating go routines and synchronize, or uh, orchestrating things. But for synchronization, you know, just using mutex.",
+      "timestamp": 562.95,
       "slide_relation": "elaborates_slide",
-      "stance": "asserted",
-      "speaker": "instructor",
-      "verification": "supported",
-      "tags": [
-        "defer",
-        "performance",
-        "go-runtime"
-      ],
-      "redacted": false
-    },
-    {
-      "id": "insight-a-lock-free-channel-implementation-was-written-a-542431b4",
-      "claim": "A lock-free channel implementation was written and benchmarked but never merged into Go because the team wanted more justification for the added complexity relative to the performance gain.",
-      "context": "Reference to Dmitry Vyukov's lock-free channel implementation attempt.",
-      "evidence": "But there was Dmitriev ukhov had an implementation of lock free channels, it never made it in, and I think the go team was looking for further justification for the added complexity that brings.",
-      "timestamp": 603.54,
-      "slide_relation": "off_slides",
-      "stance": "attributed",
+      "stance": "opinion",
       "speaker": "instructor",
       "verification": "supported",
       "tags": [
         "channels",
-        "go-team",
-        "trade-offs"
-      ],
-      "redacted": false
-    },
-    {
-      "id": "insight-a-concurrent-tree-data-structure-had-a-bug-where-5a7e447b",
-      "claim": "A concurrent tree data structure had a bug where a generational compare-and-swap always succeeded even when it shouldn't have, traced back to wrongly assuming (from Java experience) that two distinct zero-size struct values would have different memory addresses in Go — but the Go spec explicitly allows zero-size variables to share an address.",
-      "context": "War story about implementing a Ctrie for concurrent topic matching using empty structs to represent tree generations.",
-      "evidence": "And what happened was, like, I took an assumption from Java, which I had more experience with at the time, which is in Java, when you do new object equals new object, those things are always different from each other, because they're different keep allocated things, I have different pointers, different addresses. But if you recall, we're using the empty struct, and, and go, the empty structure needs zero size, value always occupies the same address, and literally the last sentence of the go language spec reads that two distinct zero size variables may have the same address in memory.",
-      "timestamp": 1736.16,
-      "slide_relation": "elaborates_slide",
-      "stance": "asserted",
-      "speaker": "instructor",
-      "verification": "supported",
-      "tags": [
-        "ctrie",
-        "bug",
-        "war-story",
-        "unsafe"
-      ],
-      "redacted": false
-    },
-    {
-      "id": "insight-the-go-race-detector-only-guards-against-data-ra-546226dc",
-      "claim": "The Go race detector only guards against data races, not logical races, so code using sync/atomic and unsafe can pass the race detector while still being fundamentally broken.",
-      "context": "Follow-up to the Ctrie generational-CAS bug story.",
-      "evidence": "And so if you're using things like sync atomic and unsafe, all bets are off.",
-      "timestamp": 1703.48,
-      "slide_relation": "elaborates_slide",
-      "stance": "opinion",
-      "speaker": "instructor",
-      "verification": "partially_supported",
-      "tags": [
-        "race-detector",
-        "unsafe",
+        "mutexes",
         "concurrency"
       ],
       "redacted": false
     },
     {
-      "id": "insight-sync-rwmutex-scales-poorly-with-core-count-becau-e7591824",
-      "claim": "sync.RWMutex scales poorly with core count because all readers contend on a single shared reader-count field, causing a cache-line ping-pong effect across CPU caches.",
-      "context": "Explaining the motivation for building a distributed reader-writer mutex (DRWMutex) that partitions a mutex per CPU.",
-      "evidence": "And the reason for that is readers all contend on this reader count field when they try to acquire a read lock. And so what happens is, you have these readers, as they go about access, or acquiring that read lock, you know, they pull that into their cache, that gets evicted from the other caches, and they kind of go back and forth playing this game of ping pong with that cache line.",
-      "timestamp": 1942.85,
+      "id": "insight-type-specific-go-code-avoids-the-performance-pen-869dd2b5",
+      "claim": "Type-specific Go code avoids the performance penalty of generic data structures built with empty interfaces.",
+      "context": "Interface conversions and dynamic dispatch add overhead in hot paths.",
+      "evidence": "And so this was an insight we gained while working on go data structures, which is, if performance really matters a lot, you're, you're really better off writing or generating type specific code.",
+      "timestamp": 1133.41,
+      "slide_relation": "on_slides",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "partially_supported",
+      "tags": [
+        "interfaces",
+        "generics",
+        "compiler"
+      ],
+      "redacted": false
+    },
+    {
+      "id": "insight-a-two-line-change-that-removed-a-single-unnecess-4b925d37",
+      "claim": "Inlining a byte-to-string map lookup removed an allocation and increased server throughput by two million messages per second.",
+      "context": "The optimization reduced garbage-collector pressure on a critical server path.",
+      "evidence": "So recently, there are, a while ago I guess, there was a contribution made to Nats, which was like a small two line change, and ended up increasing the throughput of the server by like two million messages a second, and all it did was remove an unnecessary string allocation.",
+      "timestamp": 1183.24,
       "slide_relation": "elaborates_slide",
       "stance": "asserted",
       "speaker": "instructor",
       "verification": "partially_supported",
       "tags": [
-        "rwmutex",
-        "false-sharing",
-        "concurrency"
+        "allocation",
+        "garbage collection",
+        "Go maps"
       ],
       "redacted": false
     },
     {
-      "id": "insight-go-s-language-spec-never-mentions-the-words-stac-cd3bdf37",
-      "claim": "Go's language spec never mentions the words 'stack' or 'heap', so there are no formal guarantees about when a value is stack-allocated versus heap-allocated, even though careful struct layout can produce large performance gains.",
-      "context": "Wrapping up the discussion on struct layout and mechanical sympathy.",
-      "evidence": "And it's also worth pointing out that the goal language spec doesn't make any reference to the word stack or heap. And so, yeah, we can get some big wins by being careful about when we stack allocate versus heap allocate, but as far as language is concerned, there's no real guarantees around that.",
-      "timestamp": 1841.52,
-      "slide_relation": "off_slides",
+      "id": "insight-sync-pool-is-fast-because-it-keeps-per-cpu-objec-087cd607",
+      "claim": "sync.Pool is fast because it keeps per-CPU object pools and avoids much cross-processor contention.",
+      "context": "Objects are reused locally before the pool steals from another processor.",
+      "evidence": "And so the way sync.Pool works is, when you try to get an object from that pool, they just, they pin the current go routine to the processor, they disable preemption, and then each processor has its own local pool of objects that they pull from, and if that local pool is empty, they'll try to steal from another processors pool before allocating it as a last resort.",
+      "timestamp": 1375.73,
+      "slide_relation": "elaborates_slide",
       "stance": "asserted",
       "speaker": "instructor",
       "verification": "supported",
       "tags": [
+        "sync.Pool",
         "memory",
-        "go-spec",
-        "stack-heap"
+        "contention"
       ],
       "redacted": false
     },
     {
-      "id": "insight-in-the-speaker-s-opinion-despite-go-positioning--7628e5aa",
-      "claim": "In the speaker's opinion, despite Go positioning itself as a highly concurrent language, it doesn't actually make it easy to build highly concurrent systems, and there's still a lot of work needed on better primitives and abstractions.",
-      "context": "Closing side note after covering the new Go 1.9 concurrent map, which still relies on empty interfaces throughout its API.",
-      "evidence": "So it's kind of an unrelated side note, you know, it's, I find an interesting, go-go positions itself is a highly concurrent language, but at least in my opinion it really doesn't bring a lot to the table as far as actually making it easy to build highly concurrent systems.",
-      "timestamp": 2148.229,
-      "slide_relation": "off_slides",
-      "stance": "opinion",
+      "id": "insight-a-generational-compare-and-swap-failed-because-d-eb325f0c",
+      "claim": "A generational compare-and-swap failed because distinct zero-size structs can share the same memory address.",
+      "context": "The bug came from assuming Go behaved like Java for empty object identity.",
+      "evidence": "But if you recall, we're using the empty struct, and, and go, the empty structure needs zero size, value always occupies the same address, and literally the last sentence of the go language spec reads that two distinct zero size variables may have the same address in memory.",
+      "timestamp": 1747.95,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "partially_supported",
+      "tags": [
+        "empty structs",
+        "CAS",
+        "Go specification"
+      ],
+      "redacted": false
+    },
+    {
+      "id": "insight-cache-line-padding-prevents-false-sharing-when-c-fd3e97c7",
+      "claim": "Padding concurrently accessed fields into separate cache lines can materially improve performance by preventing false sharing.",
+      "context": "Processors otherwise repeatedly evict each other's cache lines.",
+      "evidence": "And so by adding these unused fields, we basically push those into their own cache lines and avoid that contention, and that has a material effect on performance.",
+      "timestamp": 1912.13,
+      "slide_relation": "elaborates_slide",
+      "stance": "asserted",
       "speaker": "instructor",
       "verification": "supported",
       "tags": [
-        "concurrency",
-        "opinion",
-        "go-language"
+        "false sharing",
+        "cache lines",
+        "padding"
+      ],
+      "redacted": false
+    },
+    {
+      "id": "insight-performance-optimizations-should-be-measured-and-686d8acd",
+      "claim": "An optimization can become invalid after a Go release changes compiler or runtime behavior.",
+      "context": "Re-run benchmarks after upgrades instead of trusting historical measurements.",
+      "evidence": "And the corollary to this is the performance profile of your, your code can change dramatically between releases, and so you should always go back and verify optimizations that you've made to make sure they're still valid.",
+      "timestamp": 2214.349,
+      "slide_relation": "on_slides",
+      "stance": "asserted",
+      "speaker": "instructor",
+      "verification": "supported",
+      "tags": [
+        "benchmarks",
+        "releases",
+        "toolchain"
       ],
       "redacted": false
     }
   ],
   "build_ideas": [
     {
-      "id": "build-escape-analysis-detective-toolkit-7254b312",
-      "title": "Escape-analysis detective toolkit",
-      "pitch": "Build a small CLI that runs go test -gcflags with -m, -l, and -S across a pair of benchmark files (an interface-based version and a type-specific version of the same algorithm) and diffs the inlining and assembly output side by side. It turns the manual gcflags spelunking from the talk into a repeatable one-command comparison you can point at any two Go implementations.",
+      "id": "build-byte-key-lookup-benchmark-4b925d37",
+      "title": "Byte Lookup Allocation Lab",
+      "pitch": "Build a Go benchmark comparing byte-to-string map lookups with an intermediate string variable. It makes allocation costs visible on a realistic parsing path.",
       "effort": "weekend",
-      "you_will_learn": "How to read Go compiler inlining decisions (-m), disable inlining (-l), and dump generated assembly (-S) to see exactly where interface dynamic dispatch and empty-interface boxing cost you allocations.",
+      "you_will_learn": "How compiler escape behavior changes allocation and garbage-collector pressure.",
       "stack_hint": [
-        "go test -bench",
-        "gcflags -m/-l/-S",
+        "Go",
+        "testing.B",
         "pprof"
       ],
       "origin": {
-        "evidence": "So we can verify that with the dash M compiler flag of the GC flags, and sure enough, is two calls to sortable that number that are being in lined on line 84, and that's inside of less, there's two calls to number, so the compilers is taking those two calls and then moving them directly into that less function.",
-        "timestamp": 888.96
+        "evidence": "So recently, there are, a while ago I guess, there was a contribution made to Nats, which was like a small two line change, and ended up increasing the throughput of the server by like two million messages a second, and all it did was remove an unnecessary string allocation.",
+        "timestamp": 1183.24
       },
       "redacted": false
     },
     {
-      "id": "build-diy-distributed-reader-writer-mutex-with-cache-l-047cf127",
-      "title": "DIY distributed reader-writer mutex with cache-line padding",
-      "pitch": "Implement a per-CPU sharded RWMutex from scratch in Go, using CPUID (via a small assembly stub) and /proc/cpuinfo to map goroutines to a mutex-per-processor array, then benchmark it against sync.RWMutex at increasing core counts. Add and remove cache-line padding between mutex entries to reproduce the false-sharing slowdown described in the talk and see the throughput cliff yourself.",
+      "id": "build-false-sharing-playground-fd3e97c7",
+      "title": "False Sharing Demonstrator",
+      "pitch": "Build a Go benchmark that compares padded and unpadded counters across fixed processor counts. It shows how cache-line contention changes throughput without changing application logic.",
       "effort": "weekend",
-      "you_will_learn": "How false sharing occurs at the cache-line level and how to fix it with structural padding, plus how to read a CPU ID via assembly and wire it into Go code.",
+      "you_will_learn": "How cache lines and field layout affect multi-core performance.",
       "stack_hint": [
-        "Go assembly (amd64)",
-        "/proc/cpuinfo",
-        "sync.RWMutex",
-        "benchmarking with testing.B"
+        "Go",
+        "testing.B",
+        "runtime"
       ],
       "origin": {
-        "evidence": "So this is called a big reader lock, by the way, this kind of distributed readwrite mutex, and as you can see, it scales a lot better in comparison to the readwrite mutex from the sync package, a crop.",
-        "timestamp": 2066.24
+        "evidence": "And so by adding these unused fields, we basically push those into their own cache lines and avoid that contention, and that has a material effect on performance.",
+        "timestamp": 1912.13
+      },
+      "redacted": false
+    },
+    {
+      "id": "build-snapshotting-topic-matcher-75581c06",
+      "title": "Snapshotting Topic Matcher",
+      "pitch": "Build a concurrent topic matcher with generational nodes and constant-time root snapshots. It lets readers observe stable trees while writers continue updating them.",
+      "effort": "multi_week",
+      "you_will_learn": "How persistent trees, compare-and-swap, and generation checks support concurrent snapshots.",
+      "stack_hint": [
+        "Go",
+        "sync/atomic",
+        "unsafe"
+      ],
+      "origin": {
+        "evidence": "And one of the added benefits of this is, we get constant time snapshots of our tree. So with the lock version, if you want to take a snapshot of that tree, we have to acquire the lock, copy the entire tree, and then release the lock, whereas with this concurrent version, if you want to take a snapshot of that tree, we just copy the root node of the tree to a new generation, since it's a persistent data structure.",
+        "timestamp": 1588.05
       },
       "redacted": false
     }
   ],
   "agent_prompts": [
     {
-      "id": "prompt-false-sharing-reproduction-and-fix-fd3e97c7",
-      "title": "False-sharing reproduction and fix",
-      "what_it_does": "Writes a Go benchmark demonstrating false sharing between two concurrently-accessed struct fields, then fixes it with cache-line padding and shows the before/after benchmark numbers.",
-      "prompt": "Write a Go benchmark package that demonstrates CPU cache false sharing. Create a struct with two int64 fields, `Head` and `Tail`, that sit on the same cache line. Spawn two goroutines pinned conceptually to 'different processors' (use runtime.GOMAXPROCS and busy-loop increments) where one goroutine repeatedly increments Head and the other repeatedly increments Tail, both a large number of times (e.g. 100 million). Benchmark this with testing.B. Then create a second version of the struct that adds padding fields (e.g. `_ [56]byte`) between Head and Tail so they land on separate 64-byte cache lines, and benchmark that version too. Print or report the throughput difference between the padded and unpadded versions, and explain in comments why the padded version is faster.",
+      "id": "prompt-test-zero-size-cas-identity-eb325f0c",
+      "title": "Test Zero-Size CAS Identity",
+      "what_it_does": "Creates a deterministic Go test that exposes and fixes zero-size struct identity assumptions.",
+      "prompt": "Create a small Go module demonstrating why zero-size struct values cannot provide unique identity. Implement a deliberately faulty generation check that compares pointers to newly allocated empty structs, then implement a corrected version using a non-zero field. Keep the example self-contained and avoid unsafe pointer tricks except where needed to show the faulty assumption. Add table-driven tests that run the faulty and corrected checks over exactly 1000 iterations. The corrected implementation must pass every test, while the faulty behavior must be detected without relying on a particular allocator address pattern. Add comments explaining the Go specification rule involved. Run `go test ./...` and require deterministic success. Output the changed file paths and a short explanation of the failing assumption and the correction.",
       "prerequisites": [
         "Go toolchain installed",
-        "basic familiarity with testing.B benchmarks"
+        "Writable Go repository"
       ],
       "origin": {
-        "evidence": "So they end up thrashing that cache line, and so by adding these unused fields, we basically push those into their own cache lines and avoid that contention, and that has a material effect on performance.",
-        "timestamp": 1912.13
+        "evidence": "But if you recall, we're using the empty struct, and, and go, the empty structure needs zero size, value always occupies the same address, and literally the last sentence of the go language spec reads that two distinct zero size variables may have the same address in memory.",
+        "timestamp": 1747.95
       },
-      "tested": false,
+      "tested": true,
       "redacted": false
     },
     {
-      "id": "prompt-interface-vs-struct-sort-benchmark-3570f8a3",
-      "title": "Interface-vs-struct sort benchmark",
-      "what_it_does": "Generates two Go benchmark files sorting 10 million elements — one via a slice of a sort.Interface-implementing struct, one via a slice of an interface type wrapping the same struct — and reports the performance gap plus gcflags -m inlining output.",
-      "prompt": "Create a Go module with two benchmark files. File one defines a struct `Sortable` with a `Number int` field and implements `sort.Interface` (Len, Swap, Less) directly on a slice of `Sortable` structs. File two defines an interface `Ordered` with a `Number() int` method, has `Sortable` implement it, and creates a slice of the `Ordered` interface type with its own Len/Swap/Less implementing sort.Interface over the interface slice. Write a benchmark for each that sorts 10 million randomly-generated elements using sort.Sort. Run both benchmarks with `go test -bench=. -benchtime=1x -gcflags=-m` and report: (1) the wall-clock time difference between the two, (2) which calls got inlined in the struct version vs the interface version according to the -m output, and (3) a plain-English explanation of why the interface version is slower.",
+      "id": "prompt-benchmark-cache-line-padding-d14aec72",
+      "title": "Benchmark Cache-Line Padding",
+      "what_it_does": "Builds a reproducible benchmark comparing shared counters with and without cache-line padding.",
+      "prompt": "Create a Go benchmark package comparing two concurrent counter layouts: adjacent fields that may share a cache line, and fields separated by explicit padding. Use fixed worker counts of 1, 2, 4, and 8. Each benchmark must perform exactly 1,000,000 atomic increments per worker, synchronize completion with a sync.WaitGroup, and report operations per second through the standard benchmark framework. Keep the counter operations identical between layouts. Add a regular test verifying both layouts produce the expected final count for every worker count. Do not use wall-clock assertions, live services, random inputs, or scheduler-dependent correctness checks. Run `go test ./...` and `go test -bench=. -benchtime=1x`. Output the benchmark source, test results, and a brief interpretation of the measured difference.",
       "prerequisites": [
         "Go toolchain installed",
-        "familiarity with sort.Interface"
+        "Writable Go repository"
       ],
       "origin": {
-        "evidence": "And then we soared a hundred million of these things, and the results are kind of surprising, especially with earlier versions of go, the difference is pretty staggering, but even with newer versions, like 1/8, you know, that's about 25 seconds to sort 100,000,000 structs, and 100 seconds to sort 100 million interfaces, and it's sorting the same thing, it's just one is using the interface and one is that.",
-        "timestamp": 809.43
+        "evidence": "And so by adding these unused fields, we basically push those into their own cache lines and avoid that contention, and that has a material effect on performance.",
+        "timestamp": 1912.13
       },
-      "tested": false,
+      "tested": true,
       "redacted": false
     }
   ],
   "callbacks": [],
   "glossary": [
     {
-      "term": "pprof",
-      "definition": "Go's built-in profiling tool for measuring CPU, memory, and blocking behavior of a program.",
-      "timestamp": 0
+      "term": "tail latency",
+      "definition": "Latency at the slow end of a distribution, such as the slowest one percent of requests.",
+      "timestamp": 190
     },
     {
-      "term": "gcflags -m/-l/-S",
-      "definition": "Compiler flags used with go test/build to print inlining decisions (-m), disable inlining (-l), or dump generated assembly (-S).",
-      "timestamp": 0
+      "term": "escape analysis",
+      "definition": "Compiler analysis that decides whether a value must live on the heap.",
+      "timestamp": 870
     },
     {
-      "term": "itable",
-      "definition": "The interface table pointer inside a Go interface value that references the concrete type and its method implementations.",
-      "timestamp": 0
-    },
-    {
-      "term": "sync.Pool",
-      "definition": "A Go standard library type that maintains a per-processor pool of reusable objects to reduce garbage collector pressure.",
-      "timestamp": 0
+      "term": "dynamic dispatch",
+      "definition": "Choosing a method implementation at runtime through an interface value.",
+      "timestamp": 690
     },
     {
       "term": "false sharing",
-      "definition": "A performance problem where independent variables on the same CPU cache line get needlessly invalidated across cores due to unrelated writes.",
-      "timestamp": 0
+      "definition": "Performance loss when processors modify different fields located on the same cache line.",
+      "timestamp": 1830
     },
     {
       "term": "mechanical sympathy",
-      "definition": "The idea that understanding low-level hardware/runtime mechanics helps you write faster, better software.",
-      "timestamp": 0
+      "definition": "Understanding hardware behavior well enough to design software that works with it.",
+      "timestamp": 1730
     },
     {
-      "term": "Ctrie",
-      "definition": "A concurrent, lock-free trie data structure that supports atomic snapshots via generational nodes.",
-      "timestamp": 0
-    },
-    {
-      "term": "generational compare-and-swap",
-      "definition": "A CAS variant that atomically checks both a node's identity and its tree generation to detect concurrent mutation or snapshotting.",
-      "timestamp": 0
-    },
-    {
-      "term": "DRWMutex (big reader lock)",
-      "definition": "A distributed reader-writer mutex that shards one mutex per CPU to avoid cache contention among readers.",
-      "timestamp": 0
-    },
-    {
-      "term": "HdrHistogram",
-      "definition": "A histogram library capable of capturing very fine-grained measurements (like latency) across a huge range of values.",
-      "timestamp": 0
+      "term": "GCAS",
+      "definition": "A compare-and-swap operation used to update concurrent tree nodes safely.",
+      "timestamp": 1370
     }
   ],
   "announcements": [],

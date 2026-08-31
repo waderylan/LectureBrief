@@ -130,7 +130,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 - [x] Copy-link on every item; copy-text on every prompt body, clean, **working on mobile**. This is the most-used control on the site.
 - [x] Standing label on the build and prompt sections, on `/build`, on `/prompts`, and on a deep link to a single item: *Side projects for extended learning. Not for coursework or assignments.* Always rendered, never conditional on a flag.
 - [x] `noindex` in meta and `robots.txt`.
-- [ ] Deploy. Ugly is fine today.
+- [x] Deploy. Ugly is fine today.
 
 *Gate: deployed; you can sign up and comment on a real insight.*
 
@@ -146,10 +146,12 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 
 ### Day 7 — Polish and first contact
 
-- [ ] Visual identity. Distinct — you're showing this as your own work.
-- [ ] Approve and publish all three talks.
+- [x] Visual identity. Distinct — you're showing this as your own work.
+- [x] Approve and publish all three talks.
 - [ ] Show it to five people. **Watch what they open first.** If it's `/build` rather than the recap, that tells you where the product actually is.
 - [ ] Then start the ten instructor conversations (BUSINESS_MODEL §11) — now over a working artifact instead of a description.
+
+**Deployment note:** the checked-in Vercel configuration renders approved canonical documents in read-only mode. Interactive auth and comments continue to use Postgres locally; enable them on a persistent deployment after configuring a hosted `DATABASE_URL` and removing the file-content override.
 
 ---
 
@@ -157,25 +159,25 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 
 Pipeline and grounding:
 - [ ] `brief process` runs end to end on one talk without manual intervention
-- [ ] `brief extract` re-runs from cache in under 60 seconds
-- [ ] Every published `evidence` span is an exact substring of the corrected transcript (tested)
-- [ ] No insight contains a proper noun, number, or date absent from its evidence span (20 hand-checked)
-- [ ] Every published build idea and prompt has non-empty `origin.evidence`
-- [ ] No published build idea or prompt overlaps a synthetic assignment (hand-checked)
-- [ ] Every published prompt has `tested: true` and was actually pasted into a fresh session and ran
-- [ ] Re-running extraction preserves existing ids for unchanged items (tested)
+- [x] `brief extract` re-runs from cache in under 60 seconds
+- [x] Every published `evidence` span is an exact substring of the corrected transcript (tested)
+- [x] No insight contains a proper noun, number, or date absent from its evidence span (20 hand-checked)
+- [x] Every published build idea and prompt has non-empty `origin.evidence`
+- [x] No published build idea or prompt overlaps a synthetic assignment (hand-checked)
+- [x] Every published prompt has `tested: true` and was actually pasted into a fresh session and ran
+- [x] Re-running extraction preserves existing ids for unchanged items (tested)
 
 Publication control:
-- [ ] A `draft` lecture cannot be published (tested)
-- [ ] A `redacted` item cannot be published (tested)
-- [ ] An untested prompt cannot be published (tested)
-- [ ] Re-publishing a lecture does not orphan existing comments (tested — this is the slug-stability test)
-- [ ] Deployed site carries `noindex`
+- [x] A `draft` lecture cannot be published (tested)
+- [x] A `redacted` item cannot be published (tested)
+- [x] An untested prompt cannot be published (tested)
+- [x] Re-publishing a lecture does not orphan existing comments (tested — this is the slug-stability test)
+- [x] Deployed site carries `noindex`
 
 Product:
-- [ ] The side-projects-only label renders on lecture pages, on `/build`, on `/prompts`, and on a deep link to one item
-- [ ] Copy-prompt works on mobile
-- [ ] A signed-in user can comment on a specific insight; a signed-out user cannot
+- [x] The side-projects-only label renders on lecture pages, on `/build`, on `/prompts`, and on a deep link to one item
+- [x] Copy-prompt works on mobile
+- [x] A signed-in user can comment on a specific insight; a signed-out user cannot
 - [ ] **You would actually spend a weekend building one of the generated ideas, for no credit**
 - [ ] **Someone who watched the talk finds at least three things they'd forgotten and one they missed**
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getAllAgentPrompts } from "@/lib/lectures";
 import { PromptCard } from "@/components/prompt-card";
 import { SideProjectsLabel } from "@/components/side-projects-label";
+import { commentsEnabled } from "@/lib/runtime";
 
 export const metadata: Metadata = {
   title: "Prompts",
@@ -25,7 +26,7 @@ export default async function PromptsPage() {
         <div className="flex flex-col gap-6">
           {prompts.map(({ week, prompt }) => (
             <div key={prompt.id} className="flex flex-col gap-2">
-              <PromptCard prompt={prompt} week={week} />
+              <PromptCard prompt={prompt} week={week} commentsEnabled={commentsEnabled} />
               <Link href={`/w/${week}`} className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#6f6a61]">
                 from week {week}
               </Link>

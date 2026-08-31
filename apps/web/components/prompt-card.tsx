@@ -12,11 +12,13 @@ export function PromptCard({
   week,
   comments = [],
   signedIn = false,
+  commentsEnabled = true,
 }: {
   prompt: AgentPrompt;
   week: number;
   comments?: CommentView[];
   signedIn?: boolean;
+  commentsEnabled?: boolean;
 }) {
   return (
     <article id={prompt.id} className="editorial-card scroll-mt-20 flex flex-col gap-3 border p-5 sm:p-7">
@@ -33,7 +35,7 @@ export function PromptCard({
         <CopyButton label="Copy prompt" text={prompt.prompt} />
         <CopyButton label="Copy link" text={`/w/${week}#${prompt.id}`} absolute />
       </div>
-      <CommentThread itemId={prompt.id} initialComments={comments} signedIn={signedIn} />
+      <CommentThread itemId={prompt.id} initialComments={comments} signedIn={signedIn} enabled={commentsEnabled} />
     </article>
   );
 }

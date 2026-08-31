@@ -4,12 +4,12 @@
   "date": "2026-01-12",
   "title": "Logs Told Us It Was DNS",
   "status": "approved",
-  "prompt_version": "extract@0.3",
-  "generated_at": "2026-08-28T22:36:48.881Z",
+  "prompt_version": "extract@0.5",
+  "generated_at": "2026-08-31T20:44:52.398Z",
   "lead_insight": {
-    "id": "insight-a-grpc-reconnect-override-caused-clients-to-syn--a59c9e38",
-    "claim": "A gRPC reconnect override caused clients to SYN-flood deleted service IPs, saturating AWS conntrack and producing DNS errors.",
-    "context": "A rollout exposed interactions between service discovery, gRPC, Cilium, Linux routing, and AWS networking.",
+    "id": "insight-changing-grpc-from-pick-first-to-round-robin-mad-a59c9e38",
+    "claim": "A gRPC reconnection override caused thousands of clients to repeatedly SYN flood deleted service IPs during rollouts.",
+    "context": "Round-robin reconnects run in the background for every upstream.",
     "evidence": "But what this meant is that we had very very very aggressive reconnection settings, and it was all trying to happen in the background to all the upstreams all at once. And this sort of explained where a SYN flood was coming from, because we had, you know, thousands of alerting engine pods, and they were all trying to reconnect every 300 millisecond to each metric service pod.",
     "timestamp": 2130.42,
     "slide_relation": "elaborates_slide",
@@ -18,238 +18,96 @@
     "verification": "partially_supported",
     "tags": [
       "gRPC",
-      "conntrack",
-      "rollouts"
+      "reconnection",
+      "SYN flood"
     ],
     "redacted": false
   },
   "insights": [
     {
-      "id": "insight-nodelocal-dnscache-reached-its-concurrency-limit-256d55ad",
-      "claim": "NodeLocal DNSCache reached its concurrency limit because failed upstream connections occupied query slots for five seconds.",
-      "context": "The resolver could handle high throughput when upstream connections worked.",
-      "evidence": "And so this meant that incoming queries would occupy a query slot for about five seconds as I was trying to establish that connection, and then it couldn't establish the connection, in timeout. But this means that we would hit max and current with only about 200 requests per second, which, like, matched what we were saying.",
-      "timestamp": 464.699,
+      "id": "insight-a-deleted-pod-ip-continued-receiving-traffic-bec-095da0e3",
+      "claim": "A deleted pod IP continued receiving traffic because service discovery propagation outlasted pod termination and routing cleanup.",
+      "context": "Clients retained stale addresses during the rollout window.",
+      "evidence": "And the clients would continue to try and send packets to this IP address because it takes some time for our service discovery to propagate this information all the way back to the clients. And as far as the VPC fabric is concerned, the IP address is still attached to this interface, so any packet that is sent to this particular IP address, VPC fabric will still send that to the same node.",
+      "timestamp": 1289.94,
       "slide_relation": "elaborates_slide",
       "stance": "asserted",
       "speaker": "instructor",
       "verification": "partially_supported",
       "tags": [
-        "DNS",
-        "timeouts",
-        "concurrency"
+        "Kubernetes",
+        "service discovery",
+        "stale IPs"
       ],
       "redacted": false
     },
     {
-      "id": "insight-aws-conntrack-limits-caused-packet-drops-because-b5b539d2",
-      "claim": "AWS conntrack limits caused packet drops because stateful security groups require connection tracking on the hypervisor.",
-      "context": "The instance metric correlated with rollout windows.",
-      "evidence": "Amazon needs to maintain entries in the conntrack table on the hypervisor, and what this metric really was telling us is that during the rollout of our metric service, we are saturating this connection tracking table.",
-      "timestamp": 727.14,
-      "slide_relation": "elaborates_slide",
-      "stance": "asserted",
-      "speaker": "instructor",
-      "verification": "partially_supported",
-      "tags": [
-        "AWS",
-        "conntrack",
-        "packet loss"
-      ],
-      "redacted": false
-    },
-    {
-      "id": "insight-vpc-flow-logs-revealed-nearly-130-000-reconnect--da7219a4",
-      "claim": "VPC flow logs revealed nearly 130,000 reconnect attempts against an old pod IP within 90 seconds.",
-      "context": "TCP flags separated established, terminating, reset, and new connection flows.",
-      "evidence": "And the most interesting part here is the SYN packets, and you can see that what this really means is that somebody has been aggressively trying to reconnect with our metric service, and there are almost 130 connections under 90 seconds, which is extremely high.",
-      "timestamp": 959.1,
-      "slide_relation": "elaborates_slide",
-      "stance": "asserted",
-      "speaker": "instructor",
-      "verification": "partially_supported",
-      "tags": [
-        "VPC flow logs",
-        "SYN flood",
-        "TCP"
-      ],
-      "redacted": false
-    },
-    {
-      "id": "insight-reverse-path-filtering-dropped-packets-arriving--85b8501a",
-      "claim": "Reverse path filtering dropped packets arriving on a pod interface without an assigned IP address.",
-      "context": "Loose reverse path filtering still performed an interface IP check in this kernel path.",
-      "evidence": "And turns out that this was the case with, in our Cilium setup, and Cilium never really allocated an IP address to the pod secondary interface, because we don't really actually need it.",
-      "timestamp": 1515.78,
-      "slide_relation": "elaborates_slide",
-      "stance": "asserted",
-      "speaker": "instructor",
-      "verification": "partially_supported",
-      "tags": [
-        "Linux kernel",
-        "Cilium",
-        "routing"
-      ],
-      "redacted": false
-    },
-    {
-      "id": "insight-changing-grpc-from-pick-first-to-round-robin-act-d09b4cad",
-      "claim": "Changing gRPC from pick_first to round_robin activated background reconnect behavior that made a previous 300-millisecond setting dangerous.",
-      "context": "The earlier setting had been chosen for request-path reconnects.",
-      "evidence": "But what this meant is that we had very very very aggressive reconnection settings, and it was all trying to happen in the background to all the upstreams all at once.",
-      "timestamp": 2130.42,
-      "slide_relation": "elaborates_slide",
-      "stance": "asserted",
-      "speaker": "instructor",
-      "verification": "partially_supported",
-      "tags": [
-        "gRPC",
-        "load balancing",
-        "reconnects"
-      ],
-      "redacted": false
-    },
-    {
-      "id": "insight-the-eventual-fix-was-simply-deleting-a-custom-re-4a3fbe16",
-      "claim": "The incident ended after removing custom gRPC reconnect overrides and restoring the defaults.",
-      "context": "The defaults waited several seconds between reconnect attempts.",
+      "id": "insight-the-final-fix-removed-aggressive-grpc-reconnect--4a3fbe16",
+      "claim": "The final fix removed aggressive gRPC reconnect overrides and restored default backoff values.",
+      "context": "The defaults waited a few seconds between reconnection attempts.",
       "evidence": "And very surprisingly here, the fix for this just ended up being to delete these overrides that we set on the reconnection settings in grpc, instead of use, instead of overriding them to be like in hundreds of milliseconds, we deleted them and used the default values, which is like, you know, a few seconds for each of these, like, to, to wait for how long you should reconnect.",
       "timestamp": 2152.619,
       "slide_relation": "elaborates_slide",
       "stance": "asserted",
       "speaker": "instructor",
-      "verification": "partially_supported",
+      "verification": "supported",
       "tags": [
         "gRPC",
-        "configuration",
-        "incident fix"
+        "backoff",
+        "configuration"
       ],
       "redacted": false
     }
   ],
-  "build_ideas": [
-    {
-      "id": "build-tcp-flag-flow-explorer-72561838",
-      "title": "TCP Flag Flow Explorer",
-      "pitch": "Build a local viewer that groups VPC-style flow records by source address and TCP flag, then marks reconnect storms against deleted IPs. It matters because aggregate throughput hid the short-lived connection pattern that explained the incident.",
-      "effort": "weekend",
-      "you_will_learn": "How TCP flags expose connection lifecycles in aggregated flow data.",
-      "stack_hint": [
-        "VPC flow logs",
-        "Amazon Athena",
-        "TCP flags"
-      ],
-      "origin": {
-        "evidence": "And in order to understand why there is such discrepancy, we then decided to aggregate these flows with TCP flags instead.",
-        "timestamp": 919.38
-      },
-      "redacted": false
-    },
-    {
-      "id": "build-grpc-reconnect-policy-simulator-912269f6",
-      "title": "gRPC Reconnect Policy Simulator",
-      "pitch": "Build a simulator that compares pick_first and round_robin reconnect schedules across many clients and backend IPs. It matters because a small backoff override can create a large synchronized SYN burst.",
-      "effort": "weekend",
-      "you_will_learn": "How client-side load-balancing policies change reconnect timing and connection volume.",
-      "stack_hint": [
-        "gRPC",
-        "pick_first",
-        "round_robin",
-        "max_reconnect_backoff_ms"
-      ],
-      "origin": {
-        "evidence": "So we changed a setting, which is called Max reconnect back off Ms, and set it to 300 milliseconds, and this said you should wait at most 300 milliseconds when you're trying to reconnect.",
-        "timestamp": 2096.52
-      },
-      "redacted": false
-    }
-  ],
-  "agent_prompts": [
-    {
-      "id": "prompt-audit-grpc-reconnect-settings-d09b4cad",
-      "title": "Audit gRPC Reconnect Settings",
-      "what_it_does": "Find gRPC reconnect settings that become unsafe when background load balancing is enabled.",
-      "prompt": "Create a small command-line tool that scans a repository for gRPC client configuration and reports reconnect settings that may cause synchronized connection storms. Detect pick_first and round_robin usage, max_reconnect_backoff_ms overrides, resolver settings, and channel-per-address patterns. Do not modify source files. Support Go and YAML at minimum. Produce a report with file paths, line numbers, detected policy, configured backoff, and a short risk explanation. Add unit tests for each detection and tests for false positives in comments and unrelated numeric settings. Use only the standard library unless the repository already contains a parser dependency. Validate with `go test ./...` and a fixture scan command. Expected output: a working CLI, fixtures, tests, and concise README usage.",
-      "prerequisites": [
-        "A local repository to scan",
-        "Go installed",
-        "Readable source files"
-      ],
-      "origin": {
-        "evidence": "But what this meant is that we had very very very aggressive reconnection settings, and it was all trying to happen in the background to all the upstreams all at once.",
-        "timestamp": 2130.42
-      },
-      "tested": false,
-      "redacted": false
-    }
-  ],
+  "build_ideas": [],
+  "agent_prompts": [],
   "callbacks": [],
   "glossary": [
     {
+      "term": "Cilium",
+      "definition": "A Kubernetes container network interface that connects pod, node, and cloud networking.",
+      "timestamp": 80
+    },
+    {
       "term": "NodeLocal DNSCache",
-      "definition": "A DNS resolver running on each Kubernetes node that caches queries and forwards misses upstream.",
-      "timestamp": 420
+      "definition": "A node-local DNS resolver that caches requests and forwards misses upstream.",
+      "timestamp": 250
     },
     {
       "term": "conntrack",
-      "definition": "A table that tracks network connection state for filtering and packet handling.",
-      "timestamp": 980
+      "definition": "A connection-tracking table that records network flows for stateful firewall behavior.",
+      "timestamp": 1110
     },
     {
-      "term": "ENA",
-      "definition": "The AWS Elastic Network Adapter that provides network driver metrics for an instance.",
-      "timestamp": 760
+      "term": "microburst",
+      "definition": "A brief traffic spike that averaged metrics may fail to show.",
+      "timestamp": 890
     },
     {
       "term": "VPC flow logs",
-      "definition": "Aggregated records describing network flows through AWS network interfaces.",
-      "timestamp": 1160
+      "definition": "AWS records containing flow-level network metadata such as addresses, ports, bytes, and flags.",
+      "timestamp": 1320
     },
     {
       "term": "reverse path filtering",
-      "definition": "A kernel security check that drops packets whose source cannot use an allowed return route.",
-      "timestamp": 1630
+      "definition": "A kernel security check that drops packets whose expected return route fails validation.",
+      "timestamp": 1810
     },
     {
-      "term": "martian packet",
-      "definition": "A packet the kernel considers invalid because its source or route fails an interface check.",
-      "timestamp": 1570
+      "term": "Martian packet",
+      "definition": "A packet the kernel considers invalid because its source or route violates network expectations.",
+      "timestamp": 1750
     },
     {
-      "term": "Cilium",
-      "definition": "A Kubernetes container network interface that manages pod, node, and cloud networking.",
-      "timestamp": 120
-    },
-    {
-      "term": "gRPC",
-      "definition": "An RPC framework that manages client channels, name resolution, and load balancing.",
-      "timestamp": 1900
-    },
-    {
-      "term": "pick_first",
-      "definition": "A gRPC load-balancing policy that connects to one selected backend address.",
-      "timestamp": 2070
-    },
-    {
-      "term": "round_robin",
-      "definition": "A gRPC load-balancing policy that connects across addresses returned for a name.",
-      "timestamp": 2130
-    },
-    {
-      "term": "SYN flood",
-      "definition": "A burst of TCP connection attempts that can consume connection-tracking capacity.",
-      "timestamp": 1770
-    },
-    {
-      "term": "veth pair",
-      "definition": "Two linked virtual Ethernet interfaces that connect a pod namespace to the host namespace.",
-      "timestamp": 1260
+      "term": "client-side load balancing",
+      "definition": "A design where clients select among backend addresses instead of using a central load balancer.",
+      "timestamp": 2190
     }
   ],
   "announcements": [
     {
-      "text": "The speaker announced that the organization was hiring for networking work.",
-      "timestamp": 2630
+      "text": "The speaker mentioned a related blog post and recruiting opportunities.",
+      "timestamp": 2710
     }
   ],
   "open_questions": [],
