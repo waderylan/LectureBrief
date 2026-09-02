@@ -9,10 +9,11 @@
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { cached } from "../cache.js";
-import { SEGMENT_MAX_CHARS } from "../config.js";
+import { SEGMENT_MAX_CHARS, WHISPER_MODEL } from "../config.js";
 import { loadGlossary } from "../glossary.js";
 import { Transcript, type Segment, type SourceMeta } from "../types.js";
 import { readCaptions } from "./fetch.js";
+import * as whisper from "./stt/whisper.js";
 
 interface Json3Seg {
   utf8?: string;
@@ -129,7 +130,7 @@ async function transcribeLocal(sourceId: string, source: SourceMeta, force: bool
   const localPath = source.localPath;
   const contentType = source.contentType;
 
-  const { data: response } = await cached(sourceId, "stt", DeepgramResponse, force, async () => {
+  const { data: response } = await cached(sourceId, "stt-deepgram", DeepgramResponse, force, async () => {
     const params = new URLSearchParams({
       model: process.env["DEEPGRAM_MODEL"] || "nova-3",
       language: "en",
@@ -154,13 +155,29 @@ async function transcribeLocal(sourceId: string, source: SourceMeta, force: bool
   return transcriptFromDeepgram(source, response);
 }
 
+export type LocalSttProvider = "whisper" | "deepgram";
+
+export function localSttProvider(value = process.env["STT_PROVIDER"]): LocalSttProvider {
+  const provider = value?.trim().toLowerCase() || "whisper";
+  if (provider === "whisper" || provider === "deepgram") return provider;
+  throw new Error(`Unsupported STT_PROVIDER "${value}". Use "whisper" or "deepgram".`);
+}
+
 export async function run(
   sourceId: string,
   source: SourceMeta,
   opts: { force?: boolean } = {},
 ): Promise<{ data: Transcript; fromCache: boolean }> {
-  return cached(sourceId, "transcript", Transcript, opts.force ?? false, async () => {
-    if (source.sourceType === "local") return transcribeLocal(sourceId, source, opts.force ?? false);
+  const provider = source.sourceType === "local" ? localSttProvider() : "youtube";
+  const modelKey = whisper.cacheKeyForModel(WHISPER_MODEL);
+  const transcriptStage = provider === "youtube"
+    ? "transcript"
+    : provider === "whisper"
+      ? `transcript-whisper-${modelKey}`
+      : "transcript-deepgram";
+  return cached(sourceId, transcriptStage, Transcript, opts.force ?? false, async () => {
+    if (provider === "whisper") return whisper.run(sourceId, source, { force: opts.force });
+    if (provider === "deepgram") return transcribeLocal(sourceId, source, opts.force ?? false);
     const raw = (await readCaptions(sourceId)) as { events?: Json3Event[] };
     const segments = youtubeSegments(raw.events ?? []);
     const text = segments.map((segment) => segment.text).join(" ");

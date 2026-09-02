@@ -91,6 +91,21 @@ export const YT_DLP =
 /** Used only to inspect local media duration; input media is never rewritten. */
 export const FFPROBE = process.env["FFPROBE"] || "ffprobe";
 
+/** Local STT normalizes containerized Voice Memos audio before whisper.cpp. */
+export const FFMPEG = process.env["FFMPEG"] || "ffmpeg";
+
+const LOCAL_DATA_ROOT =
+  process.env["LOCALAPPDATA"] ||
+  `${process.env["HOME"] || "."}/.local/share`;
+
+export const WHISPER_CLI =
+  process.env["WHISPER_CLI"] ||
+  `${LOCAL_DATA_ROOT}/whisper.cpp/current/whisper-cli${process.platform === "win32" ? ".exe" : ""}`;
+
+export const WHISPER_MODEL =
+  process.env["WHISPER_MODEL"] ||
+  `${LOCAL_DATA_ROOT}/whisper.cpp/models/ggml-large-v3-turbo.bin`;
+
 /** Caption events are word fragments; group them up to this length. */
 export const SEGMENT_MAX_CHARS = 200;
 

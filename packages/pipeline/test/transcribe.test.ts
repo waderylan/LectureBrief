@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEEPGRAM_KEYTERM_LIMIT,
   DeepgramResponse,
+  localSttProvider,
   selectDeepgramKeyterms,
   transcriptFromDeepgram,
 } from "../src/stages/transcribe.js";
@@ -19,6 +20,12 @@ const source = SourceMeta.parse({
 });
 
 describe("Deepgram transcript normalization", () => {
+  it("uses local Whisper by default and validates provider overrides", () => {
+    expect(localSttProvider(undefined)).toBe("whisper");
+    expect(localSttProvider("deepgram")).toBe("deepgram");
+    expect(() => localSttProvider("unknown")).toThrow("Unsupported STT_PROVIDER");
+  });
+
   it("stays within Deepgram's per-request keyterm limit", () => {
     const terms = Array.from({ length: 132 }, (_, index) => `term-${index}`);
     expect(selectDeepgramKeyterms(terms)).toHaveLength(DEEPGRAM_KEYTERM_LIMIT);

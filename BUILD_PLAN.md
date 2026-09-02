@@ -20,7 +20,7 @@ This supersedes ARCHITECTURE.md where they conflict. Deltas are listed in §1; e
 | §3 "do not build accounts / comments" | **Reversed** | Both are in scope. Everything else in §3 stays out — no payments, no search, no multi-course, no job queue, no mobile app, no email digests, no flashcards. |
 | §7.3 under $2/lecture | **Revisit later** | That budget assumed a mid-tier model. See §5. Irrelevant at demo scale; flagged, not solved. |
 | CSCI 599 framing | **Dropped** | Nothing in the product names a course, an instructor, or an institution. |
-| AD-1 hosted STT + AD-4 map-reduce | **Dropped for MVP** | Free YouTube auto-captions; single-pass extraction. Both are consequences of 38-minute talks replacing 2-hour lectures. See §5. |
+| AD-1 hosted STT + AD-4 map-reduce | **Amended for MVP** | YouTube sources use free captions. Local recordings default to local `whisper.cpp`, with Deepgram available as an explicit fallback. Extraction remains single-pass for talk-length input. See §5. |
 | §5 model: Opus 5 via API | **Replaced** | Headless Codex (`codex exec`) on GPT-5.6 Luna, behind a one-file provider seam. Claude is an explicit compatibility option. |
 
 Everything else — the grounding contract, the three-way slide comparison, the redact-before-extract ordering, the verification pass, the tested-prompt gate, the coursework exclusion, generic attribution — carries over unchanged. Those are what make it not a generic summarizer.
@@ -35,7 +35,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 |---|---|---|
 | Pipeline | TypeScript CLI, `tsx`, `commander` | Runs on your laptop. One user: you. |
 | Source ingest | `yt-dlp` captions or local media | YouTube inputs cache timed captions. Local files remain in place and receive a stable content-hash ID. |
-| Transcription | YouTube auto-captions or Deepgram prerecorded STT | URLs use free, timestamped captions. Local Voice Memos files use Deepgram Nova with glossary keyterms and diarization, then enter the identical transcript schema. |
+| Transcription | YouTube captions, local `whisper.cpp`, or Deepgram | URLs use free timed captions. Local Voice Memos default to `large-v3-turbo` with English fixed and glossary prompting; Deepgram remains an optional hosted fallback. Every path enters the identical transcript schema. |
 | Slide text | `unpdf` | Text PDFs. Falls back to a vision pass only if a specific deck is image-only. |
 | LLM | Headless Codex (`codex exec`), GPT-5.6 Luna | Reuses Codex CLI authentication. `LLM_PROVIDER=claude` remains an explicit compatibility mode. Effort per stage (§5). |
 | Schema/validation | `zod` | One schema file shared by pipeline and site. This is the §9 data contract, in code. |
@@ -74,7 +74,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 - [x] LLM adapter (`llm.ts`) over headless Codex, defaulting to GPT-5.6 Luna, with zod validation and one retry. Verified live: clean JSON, verbatim evidence spans, and correct stance classification. Claude remains opt-in.
 - [x] `brief fetch <source>` pulls YouTube auto-captions or ingests local media metadata, caching by stable source id.
 - [x] `brief transcribe` normalizes captions into the transcript shape — timestamps preserved, `speaker: "unclear"`. Output cached. **Re-running must never re-fetch.**
-- [x] Local Voice Memos ingestion (`.m4a`, plus common audio/video containers): content-hash identity, ffprobe metadata, cached Deepgram response, timestamped transcript, and provider speaker labels without guessing instructor/student roles.
+- [x] Local Voice Memos ingestion (`.m4a`, plus common audio/video containers): content-hash identity, ffprobe metadata, cached local `whisper.cpp` or Deepgram output, and a timestamped transcript without guessing instructor/student roles.
 - [x] Read the raw transcript for the DNS talk and judge jargon quality against the `syllabus.md` glossary. If terms are mangled beyond what the correction pass can fix, record that and reconsider paid STT.
 
 *Gate: one full talk transcribed and cached, with timestamps and speaker labels.*
@@ -201,7 +201,7 @@ The last two are the only ones that measure whether the product works. The rest 
 
 **Headless calls are isolated generation functions.** Codex runs with `--ephemeral`, `--ignore-user-config`, `--ignore-rules`, and a read-only sandbox from the system temp directory. This keeps repository instructions, user settings, tools, and rollout files out of extraction context. The model receives only the versioned function contract and the delimited input on stdin; stdout contains only the final JSON response.
 
-**YouTube transcription is free** through auto-captions. Local Voice Memos recordings use paid Deepgram prerecorded STT with Nova, glossary keyterms, utterance timestamps, and diarization. The raw provider response and normalized transcript are cached under a content-hash source ID, so downstream retries never pay to transcribe again. Provider speaker numbers are retained, but remain `speaker: "unclear"` until a role can be established instead of guessing that speaker 0 is the instructor.
+**YouTube transcription is free** through auto-captions. Local Voice Memos recordings default to `whisper.cpp` with `large-v3-turbo`, `language=en`, CUDA when the installed build supports it, and a bounded glossary prompt. FFmpeg converts the source to temporary 16 kHz mono PCM; the temporary WAV is removed after inference. Set `STT_PROVIDER=deepgram` for the hosted Nova fallback with glossary keyterms and diarization. Provider output and the normalized transcript use provider-specific cache keys under the content-hash source ID, so changing providers never serves stale output and downstream retries never transcribe again. Speaker roles remain `unclear` instead of guessing that speaker 0 is the instructor.
 
 **Guardrail:** if any stage exceeds ten times its expected token count, fail loudly. A looping prompt bug is the realistic way this gets expensive — in subscription usage rather than dollars, but expensive either way.
 

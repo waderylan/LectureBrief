@@ -59,8 +59,9 @@ program
     const videoId = await sourceIdFromInput(url);
     const source = await readCache(videoId, "source", SourceMeta);
     const { data, fromCache } = await transcribeStage.run(videoId, source, o);
+    const provider = source.sourceType === "local" ? transcribeStage.localSttProvider() : "youtube";
     console.log(
-      `${videoId}  ${data.wordCount} words  ${data.segments.length} segments  ${fromCache ? "(cached)" : "(fresh)"}`,
+      `${videoId}  provider=${provider}  ${data.wordCount} words  ${data.segments.length} segments  ${fromCache ? "(cached)" : "(fresh)"}`,
     );
   });
 
