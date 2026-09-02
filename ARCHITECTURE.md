@@ -3,11 +3,13 @@
 **Audience:** the implementing agent, and future-me
 **Scope:** one course (USC CSCI 599, Fall 2026, ~150 students), one semester, one operator
 
+> **Status: original plan, not the as-built system.** This file preserves the product thesis, trust constraints, grounding contract, data contract, and the decisions that motivated the first implementation. Several implementation decisions changed during the demo build. `BUILD_PLAN.md` supersedes this file wherever they conflict and contains the current stack, delivered state, deviation ledger, operator workflow, and remaining work. Do not infer current behavior from the original stack, pipeline diagram, build order, or v2 list below without checking `BUILD_PLAN.md` first.
+
 ---
 
 ## 0. How to use this document
 
-This is a decision record, not a tutorial. Every section marked **DECISION** is settled — implement it as written. If you think a decision is wrong, stop and raise it rather than silently substituting something else, because most of these look arbitrary and are not.
+This is the original decision record, not a tutorial. Every section marked **DECISION** was settled for that plan. The implemented demo later made explicit, documented substitutions in `BUILD_PLAN.md §1`; those substitutions now take precedence. Decisions not superseded there still hold.
 
 Sections marked **OPEN** are yours to figure out.
 
@@ -55,6 +57,8 @@ Three consequences that drive every design choice:
 ---
 
 ## 3. Scope boundary for v1
+
+> **Historical scope.** Accounts, comments, Postgres, and Next.js were subsequently pulled into the demo MVP. The current boundary is in `BUILD_PLAN.md §§0–1, 7`.
 
 **Build:** a command-line pipeline that turns one audio file plus one slide deck into one reviewable JSON document, and a static site that renders those documents.
 
@@ -275,6 +279,8 @@ Each prompt carries:
 ## 7. Pipeline
 
 ### 7.1 Stages
+
+> **Historical pipeline.** The delivered demo removed chunk/map/reduce for 38-minute sources, added punctuation, assembly, publication, local-file ingestion, and a complete `brief process` orchestrator. See `BUILD_PLAN.md §§0, 3, 5`. Map-reduce remains the intended correction when real inputs return to approximately two hours.
 
 ```
 audio ──▶ transcribe ──▶ correct terms ──▶ redact ──▶ chunk
@@ -497,6 +503,8 @@ The last two are the only criteria that measure whether the product works. The r
 
 ## 13. Build order
 
+> **Historical build order.** The implementation is complete through the demo/deployment milestone. The checked state and actual deviations are recorded in `BUILD_PLAN.md`; do not use this section as the current checklist.
+
 - **Day 1** — Record ten minutes in SGM 124 with the phone in its real position. Run that sample through two or three transcription providers, count errors on course terms, pick a winner. Then get transcription working end to end with vocabulary boosting and caching. Nothing else.
 - **Day 2** — Glossary extraction from the syllabus; correction pass; `corrections_log`; redaction.
 - **Day 3** — Chunking, map extraction, reduce. Raw JSON to stdout. No site yet.
@@ -514,6 +522,8 @@ Watch what the five classmates open first. If it's the build ideas rather than t
 ## 14. Deferred to v2
 
 ### Reader comments — the intended direction
+
+> **Implemented earlier than planned.** Authenticated, item-anchored comments now exist in the Postgres runtime. The checked-in Vercel deployment deliberately runs in read-only file mode, so comments are not enabled there yet. See `BUILD_PLAN.md §0`.
 
 The strongest planned expansion, and the reason to keep it out of v1 anyway. Letting readers reply to an insight, add their own project ideas, and share prompts they've tuned turns a publication into something with a reason to return. With 150 people in the course, the ceiling on reader-contributed prompts is plausibly higher than on generated ones.
 

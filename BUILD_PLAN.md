@@ -1,10 +1,39 @@
 # Build Plan — MVP
 
 **Target:** a working, deployed artifact to show in instructor conversations (BUSINESS_MODEL §11), carrying enough of the differentiated feature set that it demonstrates the product rather than the pipeline.
-**Horizon:** one focused week (realistically 8 working days — see §6).
-**Source material:** public conference talks + open courseware. No student capture, no non-consenting instructor.
+**Original horizon:** one focused week (realistically 8 working days — see §6). The implementation milestone is complete; §0 is the current status.
+**Demo source material:** public conference talks + open courseware. Local Voice Memos ingestion is implemented for future consenting lectures; no non-consenting instructor or student capture is authorized.
 
-This supersedes ARCHITECTURE.md where they conflict. Deltas are listed in §1; everything not listed there still holds, and ARCHITECTURE.md remains the authority on the pipeline internals (AD-1 through AD-5, AD-8 through AD-10, §5 grounding contract, §6 applied sections, §8 extraction prompt, §12 failure modes).
+This supersedes ARCHITECTURE.md where they conflict. Deltas are listed in §1; everything not listed there still holds. `ARCHITECTURE.md` remains authoritative for the product thesis, AD-3, AD-5, AD-8 through AD-10, the §5 grounding contract, §6 applied sections, §8 extraction principles, and §12 failure modes.
+
+---
+
+## 0. Current implementation — 2026-09-01
+
+**Status:** the demo MVP is implemented and deployed. The product has not completed user or instructor validation and is not ready for a real course pilot.
+
+| Area | Delivered state |
+|---|---|
+| Pipeline | `brief process <source> --slides <pdf-or-url> --week <n>` runs ingest → transcribe → correct → redact → punctuate → slide extraction → single-pass extraction → isolated verification → assembly. It always stops at `content/lecture-NN.draft.json`; approval and publication remain manual. |
+| Sources | YouTube URLs/video IDs use timed auto-captions. Local Voice Memos and common media files use a SHA-256 source ID and default to local `whisper.cpp`; Deepgram remains an explicit fallback. Slide decks may be local PDFs or remote URLs. |
+| Local STT | `whisper.cpp` 1.9.3 with `large-v3-turbo`, fixed English, CUDA, and a bounded glossary prompt was installed and smoke-tested on the development machine. The runtime and 1.51 GB model are machine-local prerequisites under `%LOCALAPPDATA%/whisper.cpp`, not committed repository assets. |
+| Content | Three public conference talks have approved canonical documents in `content/lecture-01.json` through `lecture-03.json`. Draft artifacts and stage caches stay out of Git. |
+| Grounding | Verbatim evidence, real timestamps, three-way slide relation, isolated claim verification, coursework exclusion, redaction gates, tested-prompt gates, generic attribution, and stable item IDs are implemented. |
+| Site | Next.js App Router renders `/`, `/w/[week]`, `/archive`, `/build`, `/prompts`, `/signin`, and `/signup`. The planned `/t/[tag]` route was cut. |
+| Interactive runtime | Postgres, Drizzle, Auth.js credentials, and item-anchored comments are implemented and work in the database-backed runtime. |
+| Checked-in deployment | Vercel is configured for `LECTUREBRIEF_CONTENT_SOURCE=files`: it renders approved canonical JSON read-only, retains `noindex`, and disables auth/comments. This is intentionally not the full interactive runtime. |
+| Verification | TypeScript typecheck, 54 non-database tests, a production web build, real local Whisper transcription, cached transcription, and end-to-end URL processing were verified. Publish integration tests require a reachable configured Postgres database. |
+
+**What remains before this can be called a validated product:**
+
+- Pick the final name and domain.
+- Put the artifact in front of five readers and measure what they open and retain.
+- Run the ten instructor conversations in `BUSINESS_MODEL.md §11`.
+- Validate that a generated idea is genuinely worth a weekend and that a viewer recovers three forgotten points plus one missed point.
+- Restore chunked map-reduce before treating approximately two-hour lectures as production-safe. Local STT accepts long recordings, but a full two-hour local run has not been benchmarked; the current single-pass extractor was chosen for the 38-minute demo talks.
+- Configure hosted Postgres and remove file-content mode only if the deployed demo needs auth/comments.
+- Add moderation, an instructor approval workflow, and FERPA-grade handling before any pilot with real students.
+- Revisit source rights before removing `noindex`; `SOURCES.md` records access, not broad republication licenses.
 
 ---
 
@@ -12,16 +41,21 @@ This supersedes ARCHITECTURE.md where they conflict. Deltas are listed in §1; e
 
 | Decision | Status | Replacement |
 |---|---|---|
-| AD-0 phone capture | **Dropped** | Audio from public talks (`yt-dlp`) and open courseware. The provider bake-off survives but shrinks — see §3 Day 1. |
+| AD-0 phone capture | **Changed for demo; capability restored** | The demo uses public talks. Local Voice Memos files are now supported for a future consenting lecture, but no real-course capture or room/provider bake-off has been completed. |
+| AD-1 hosted STT | **Replaced by selectable STT** | YouTube uses captions. Local files default to local `whisper.cpp` `large-v3-turbo`; `STT_PROVIDER=deepgram` is the hosted fallback. All paths normalize into the same transcript schema. |
+| AD-2 provider diarization | **Partial** | Deepgram speaker numbers are retained without guessing semantic roles. Local Whisper has no reliable diarization, so `speaker` remains `unclear`. |
+| AD-4 map-reduce | **Dropped for demo inputs** | A single extract call replaced chunk/map/reduce because the demo talks are approximately 38 minutes. Reinstate windows and reduce before relying on two-hour lecture recall. |
 | AD-6 git is the database | **Amended** | Lecture JSON stays canonical in git; `brief publish` upserts it into Postgres. Comments and users live only in Postgres. |
 | AD-7 publication state | **Strengthened** | Still enforced in code, now at the publish boundary rather than at static build. `draft` and `redacted` never reach Postgres at all. |
 | §9 slug stability | **Strengthened** | Now a data-integrity requirement, not just link hygiene: comments FK to item ids, so a regenerated id orphans a thread. Gets its own test. |
 | §10 Astro static | **Replaced** | Next.js (App Router). Auth and comments need a server. |
 | §3 "do not build accounts / comments" | **Reversed** | Both are in scope. Everything else in §3 stays out — no payments, no search, no multi-course, no job queue, no mobile app, no email digests, no flashcards. |
+| §10 `/t/[tag]` | **Cut** | The other planned routes are implemented. Tag browsing was the documented first scope cut and remains absent. |
+| §10 name/domain before Day 5 | **Not completed** | `LectureBrief` remains a placeholder. Visual identity and deployment proceeded without a final domain. |
 | §7.3 under $2/lecture | **Revisit later** | That budget assumed a mid-tier model. See §5. Irrelevant at demo scale; flagged, not solved. |
 | CSCI 599 framing | **Dropped** | Nothing in the product names a course, an instructor, or an institution. |
-| AD-1 hosted STT + AD-4 map-reduce | **Amended for MVP** | YouTube sources use free captions. Local recordings default to local `whisper.cpp`, with Deepgram available as an explicit fallback. Extraction remains single-pass for talk-length input. See §5. |
 | §5 model: Opus 5 via API | **Replaced** | Headless Codex (`codex exec`) on GPT-5.6 Luna, behind a one-file provider seam. Claude is an explicit compatibility option. |
+| Static deployment vs interactive runtime | **Split deliberately** | The checked-in Vercel target reads approved files and disables auth/comments. Database-backed auth/comments currently remain a local/runtime capability until hosted Postgres is configured. |
 
 Everything else — the grounding contract, the three-way slide comparison, the redact-before-extract ordering, the verification pass, the tested-prompt gate, the coursework exclusion, generic attribution — carries over unchanged. Those are what make it not a generic summarizer.
 
@@ -40,7 +74,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 | LLM | Headless Codex (`codex exec`), GPT-5.6 Luna | Reuses Codex CLI authentication. `LLM_PROVIDER=claude` remains an explicit compatibility mode. Effort per stage (§5). |
 | Schema/validation | `zod` | One schema file shared by pipeline and site. This is the §9 data contract, in code. |
 | Site | Next.js App Router + Tailwind | Server components for reads, server actions for comments. |
-| DB | Postgres (Neon) + Drizzle | Free tier. Drizzle because migrations are plain SQL you can read. |
+| DB | Postgres + Drizzle | Implemented against a configured Postgres runtime. A hosted Neon/database deployment is not currently configured. |
 | Auth | Auth.js v5, Credentials provider, bcrypt | Own auth, email + password, JWT session cookie. No OAuth app registration, no payment, no email service. ~2 hours. |
 | Deploy | Vercel | `noindex` until you say otherwise. |
 
@@ -48,12 +82,45 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 
 ```
 /packages/schema     zod schemas + TS types — the data contract, imported by both sides
-/packages/pipeline   the CLI: transcribe, correct, redact, chunk, extract, reduce, verify, publish
-/prompts             extract.md, reduce.md, verify.md, correct.md — versioned, diffable
+/packages/pipeline   source ingest, STT providers, correction, redaction, punctuation, extraction, verification, assembly, publication
+/packages/db         Drizzle schema, migrations, and Postgres client
+/prompts             correct.md, punctuate.md, extract.md, verify.md — versioned, diffable
 /content             lecture-NN.json, committed. canonical source of truth.
 /apps/web            Next.js site
-/.cache              audio-hash-keyed stage cache, gitignored
+/.cache              source-hash-keyed stages, raw provider output, span cache, and week registry; gitignored
+/redactions          per-source timestamp and literal-string exclusions
 ```
+
+### 2.1 Operator workflow
+
+Process a local Voice Memo and local slide deck:
+
+```powershell
+pnpm brief process "C:\Lectures\week-04.m4a" `
+  --slides "C:\Lectures\week-04.pdf" `
+  --week 4 `
+  --title "Week 4 Lecture" `
+  --date 2026-09-01
+```
+
+The same command accepts a YouTube URL/video ID and a remote slide URL. Local recordings use `STT_PROVIDER=whisper` by default. Set `STT_PROVIDER=deepgram` and `DEEPGRAM_API_KEY` to use the hosted fallback. `--force` invalidates relevant caches and may repeat paid Deepgram work.
+
+The command writes `content/lecture-04.draft.json`. It does **not** approve or publish. The operator must:
+
+1. Review grounding, redactions, corrections, build ideas, and prompt provenance.
+2. Run every generated prompt and set `tested: true` only after it succeeds.
+3. Promote the reviewed draft to `content/lecture-04.json` and set `status: "approved"` manually.
+4. For the read-only Vercel deployment, commit and deploy the canonical file. For the database runtime, run `pnpm brief publish 4` after approval.
+
+Useful verification commands:
+
+```powershell
+pnpm typecheck
+pnpm exec vitest run --exclude packages/pipeline/test/publish.test.ts
+pnpm --filter @lecturebrief/web build
+```
+
+Run `pnpm test` when the configured Postgres test database is reachable; `publish.test.ts` is intentionally an integration test.
 
 ---
 
@@ -77,7 +144,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 - [x] Local Voice Memos ingestion (`.m4a`, plus common audio/video containers): content-hash identity, ffprobe metadata, cached local `whisper.cpp` or Deepgram output, and a timestamped transcript without guessing instructor/student roles.
 - [x] Read the raw transcript for the DNS talk and judge jargon quality against the `syllabus.md` glossary. If terms are mangled beyond what the correction pass can fix, record that and reconsider paid STT.
 
-*Gate: one full talk transcribed and cached, with timestamps and speaker labels.*
+*Gate: one full talk transcribed and cached with timestamps; provider speaker labels retained when available and semantic roles left unclear rather than guessed.*
 
 ### Day 2 — Correction, redaction, chunking
 
@@ -102,7 +169,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 - [x] Slug minting and persistence: ids generated once from content (`insight-<slug>-<hash>` etc.), matched on re-run by evidence-span overlap against whatever is currently cached (read even under `--force`), never regenerated for a matched item. Verified: re-running week 1 with `--force` reused ids for insights whose evidence matched the prior run and minted fresh ids only for genuinely new build ideas.
 - [x] Output raw JSON to stdout. No site yet. Read it. Ran on all three talks (weeks 1-3); lead insights are specific and grounded (e.g. week 3: "a two-line NATS change... increased server throughput by two million messages a second").
 
-**Note on `slide_relation` and `verification`:** neither is requested from the model here — Day 4 owns slide ingestion and the verify pass. Every insight from Day 3's extract carries provisional placeholders (`off_slides`, `supported`) that Day 4 overwrites. Nothing produced here is published (`status` stays `draft`), so this isn't a grounding violation, just an ordering one the original per-window map/reduce text didn't anticipate.
+**As-built extract contract:** extraction receives the punctuated transcript, slide text, and coursework exclusion list in one call. It assigns the three-way `slide_relation` and produces provisional `supported` verification values. The separate isolated verifier replaces those provisional values or drops the insight before assembly. Nothing generated here is published; assembly still produces `status: "draft"`.
 
 **Note on timestamps:** the model is never asked to report a `timestamp` for anything anchored to `evidence` — the plain-text transcript it receives carries no timing markers, so a model-reported number would be a guess. The code instead locates the (verbatim-checked) evidence in the segment stream and reads the real segment start time off it. This also makes the verbatim check load-bearing: an evidence span that isn't found gets no timestamp and the item is dropped (`droppedForMissingEvidence`).
 
@@ -110,22 +177,22 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 
 ### Day 4 — Grounding, slides, verification
 
-- [x] Slide deck ingestion via `unpdf`; text passed to reduce.
+- [x] Slide deck ingestion via `unpdf`; text passed to the merged extract call.
 - [x] Three-way `slide_relation` (AD-5): `on_slides` | `elaborates_slide` | `off_slides`. **Not a boolean** — `elaborates_slide` holds most of the value, and a binary flag files it under "recap" and destroys the product.
-- [x] Coursework exclusion applied at reduce, against the Day 0 assignment list.
+- [x] Coursework exclusion applied in the merged extract call, against the Day 0 assignment list.
 - [x] Verification pass (§5): isolated cheap call per insight, seeing **only** claim and evidence. Specifically checks for proper nouns, numbers, dates, and percentages absent from the evidence span — plausible sharpening is the dangerous failure, not invention from nothing. `unsupported` drops; `partially_supported` keeps with a visible hedge.
 - [x] Tests: every `evidence` is an exact substring of the corrected transcript; every published build idea and prompt has non-empty `origin.evidence`; blocklist grep for any name that shouldn't appear.
 
-**Note on the "passed to reduce" wording and the verify stage's cache shape:** this section's wording (and the `pipeline-stage` skill) still describes slide text and the exclusion list as inputs to a "reduce" stage. Day 3 already merged map and reduce into one `extract` call (§5), so there's no separate reduce stage left to hand them to. Resolution: slide text and the exclusion list join the extract stage's existing single call as additional context — the model assigns `slide_relation` and does its own coursework-exclusion self-check in that same call (`extract.ts`, `prompts/extract.md@0.2`) — rather than inventing a new "reduce" or "slides" stage for them. Verification stayed genuinely separate, per ARCHITECTURE.md §5's point that isolation (seeing only claim+evidence) is what makes it a real check: it's its own file (`verify.ts`) and its own prompt (`verify.md`), run via `brief verify <week>`. It isn't a fresh `cached()` stage, though — there's no `verify.json`. It reads the `extract` cache, drops any insight the model calls `unsupported` (the `Insight` schema only has room for `supported` | `partially_supported`, so an unsupported claim structurally can't be published), promotes a surviving insight to `lead_insight` if the original lead itself failed, and writes the result back under the `extract` cache key with `verified: true` — matching `cli.ts`'s existing comment that `verify` "read[s] from the cached extract.json and overwrit[es] each insight's verification field before re-caching."
+**As-built verification boundary:** verification remains separate because isolation — seeing only `claim` and `evidence` — is what makes it a real check. `brief verify <week>` reads the `extract` cache, drops `unsupported` insights, promotes a surviving lead if necessary, sets `supported` or `partially_supported`, marks the result `verified: true`, and writes it back to the same cache entry. There is intentionally no separate `verify.json`.
 
 *Gate: schema frozen, grounding tests green.*
 
 ### Day 5 — Site, auth, comments (the big day)
 
-- [x] Neon Postgres + Drizzle. Tables: `users`, `lectures`, `items` (insights, build ideas, and prompts, keyed by the persisted slug), `comments`.
+- [x] Postgres + Drizzle. Tables: `users`, `lectures`, `items` (insights, build ideas, and prompts, keyed by the persisted slug), `comments`. The implemented database runtime is configurable; hosted Neon is not currently wired into the checked-in deployment.
 - [x] `brief publish <n>`: validates, **refuses anything not `approved`, drops every `redacted` item and every prompt with `tested: false`**, then upserts into Postgres. Three tests, one per exclusion. This is the promise the whole business rests on — make the failure impossible, not unlikely.
 - [x] Auth.js v5, credentials, bcrypt, JWT session. Sign up, sign in, sign out. No password reset, no email verification, no roles beyond `user` and `admin`.
-- [x] Routes: `/`, `/w/[week]`, `/w/[week]#[id]`, `/archive`, `/build`, `/prompts`. (`/t/[tag]` is the first thing to cut if the week gets tight.)
+- [x] Routes: `/`, `/w/[week]`, `/w/[week]#[id]`, `/archive`, `/build`, `/prompts`. The planned `/t/[tag]` route was cut.
 - [x] Lecture page IA exactly as ARCHITECTURE.md §10 orders it: lead insight, then off the slides, then build this, then prompts, then callbacks, glossary, announcements, and **on the slides collapsed at the bottom**. Do not merge it chronologically.
 - [x] Comments anchored to a specific item id, not to a weekly thread. Signed-in users only. Server action, optimistic render.
 - [x] Copy-link on every item; copy-text on every prompt body, clean, **working on mobile**. This is the most-used control on the site.
@@ -133,7 +200,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 - [x] `noindex` in meta and `robots.txt`.
 - [x] Deploy. Ugly is fine today.
 
-*Gate: deployed; you can sign up and comment on a real insight.*
+*Gate: the database-backed runtime supports sign-up and item comments; the checked-in Vercel deployment is intentionally read-only.*
 
 ### Day 6 — Prompts only. No code.
 
@@ -178,7 +245,7 @@ Publication control:
 Product:
 - [x] The side-projects-only label renders on lecture pages, on `/build`, on `/prompts`, and on a deep link to one item
 - [x] Copy-prompt works on mobile
-- [x] A signed-in user can comment on a specific insight; a signed-out user cannot
+- [x] In the database-backed runtime, a signed-in user can comment on a specific insight; a signed-out user cannot
 - [ ] **You would actually spend a weekend building one of the generated ideas, for no credit**
 - [ ] **Someone who watched the talk finds at least three things they'd forgotten and one they missed**
 
@@ -197,7 +264,7 @@ The last two are the only ones that measure whether the product works. The rest 
 | Reduce | `medium` | Merged into the extract call for talk-length input. |
 | Verify | `low` | ~30 isolated calls. Do not batch them to save money; isolation is what makes it a real check. |
 
-**Map-reduce is dropped for talk-length source material.** AD-4 windows the transcript because a 2-hour lecture is 25–30k tokens and recall sags in the middle. A 38-minute talk is ~7,600 tokens — windowing it yields three chunks, which is pure overhead and actively worse, since whole-talk context is exactly what the reduce stage needed windowing to recover. Reinstate windowing if the source ever returns to 2-hour lectures.
+**Map-reduce is dropped only for the 38-minute demo talks.** AD-4 windows the transcript because a 2-hour lecture is 25–30k tokens and recall sags in the middle. A 38-minute talk is ~7,600 tokens — windowing it yields three chunks, which is pure overhead and actively worse, since whole-talk context is exactly what the reduce stage needed windowing to recover. Local ingestion can now accept two-hour Voice Memos files, but that does not make the single-pass extractor production-safe at that length. Reinstate windowing and reduce before the first real two-hour lecture.
 
 **Headless calls are isolated generation functions.** Codex runs with `--ephemeral`, `--ignore-user-config`, `--ignore-rules`, and a read-only sandbox from the system temp directory. This keeps repository instructions, user settings, tools, and rollout files out of extraction context. The model receives only the versioned function contract and the delimited input on stdin; stdout contains only the final JSON response.
 
@@ -207,11 +274,11 @@ The last two are the only ones that measure whether the product works. The rest 
 
 ---
 
-## 6. Honest scope note
+## 6. Scope retrospective
 
-Accounts and comments add roughly a day and a half that ARCHITECTURE.md's seven-day plan did not budget for, and they land almost entirely on Day 5, which was already the site day. Expect eight to nine working days at one focused week's intensity.
+Accounts and comments added roughly a day and a half that `ARCHITECTURE.md`'s seven-day plan did not budget for, landing almost entirely on Day 5, which was already the site day. The original estimate should have been eight to nine focused working days.
 
-**If you hold hard to seven days, cut in this order** — and note that comments are not on the list, because they're what distinguishes this from a notes site:
+**The documented seven-day cut order was:**
 
 1. `/t/[tag]` route
 2. `/archive` dek lines (plain list instead)
