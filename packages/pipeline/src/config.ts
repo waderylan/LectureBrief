@@ -88,6 +88,9 @@ export const YT_DLP =
   process.env["YT_DLP"] ??
   `${process.env["USERPROFILE"] ?? process.env["HOME"]}/.local/bin/yt-dlp.exe`;
 
+/** Used only to inspect local media duration; input media is never rewritten. */
+export const FFPROBE = process.env["FFPROBE"] || "ffprobe";
+
 /** Caption events are word fragments; group them up to this length. */
 export const SEGMENT_MAX_CHARS = 200;
 

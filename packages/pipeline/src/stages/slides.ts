@@ -9,7 +9,11 @@
 
 import { z } from "zod";
 import { extractText, getDocumentProxy } from "unpdf";
-import { cached } from "../cache.js";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { cached, isCached, readCache } from "../cache.js";
 import { slideDeckForVideo } from "../config.js";
 
 export const SlideText = z.object({
@@ -21,14 +25,27 @@ export type SlideText = z.infer<typeof SlideText>;
 
 export async function run(
   videoId: string,
-  opts: { force?: boolean } = {},
+  opts: { force?: boolean; source?: string } = {},
 ): Promise<{ data: SlideText; fromCache: boolean }> {
-  return cached(videoId, "slides", SlideText, opts.force ?? false, async () => {
-    const url = slideDeckForVideo(videoId);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`slides: fetching ${url} returned HTTP ${res.status}`);
+  const requested = opts.source ?? slideDeckForVideo(videoId);
+  const localPath = resolve(requested);
+  const local = existsSync(localPath);
+  const url = local ? pathToFileURL(localPath).href : requested;
+  const previous = isCached(videoId, "slides")
+    ? await readCache(videoId, "slides", SlideText).catch(() => null)
+    : null;
+  const force = opts.force || (previous !== null && previous.url !== url);
 
-    const buf = new Uint8Array(await res.arrayBuffer());
+  return cached(videoId, "slides", SlideText, force ?? false, async () => {
+    let buf: Uint8Array;
+    if (local) {
+      if (!localPath.toLowerCase().endsWith(".pdf")) throw new Error(`Slide deck must be a PDF: ${localPath}`);
+      buf = new Uint8Array(await readFile(localPath));
+    } else {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`slides: fetching ${url} returned HTTP ${res.status}`);
+      buf = new Uint8Array(await res.arrayBuffer());
+    }
     const pdf = await getDocumentProxy(buf);
     const { totalPages, text } = await extractText(pdf, { mergePages: true });
 

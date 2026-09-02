@@ -10,7 +10,31 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { ZodType } from "zod";
-import { PATHS } from "./config.js";
+import { PATHS, videoIdForWeek } from "./config.js";
+
+const WEEK_SOURCES_FILE = "week-sources.json";
+
+async function readWeekSources(): Promise<Record<string, string>> {
+  try {
+    return JSON.parse(await readFile(join(PATHS.cache, WEEK_SOURCES_FILE), "utf8")) as Record<string, string>;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
+    throw error;
+  }
+}
+
+/** Generated registry that lets week commands find URL and local sources alike. */
+export async function registerWeekSource(week: number, sourceId: string): Promise<void> {
+  const sources = await readWeekSources();
+  sources[String(week)] = sourceId;
+  await mkdir(PATHS.cache, { recursive: true });
+  await writeFile(join(PATHS.cache, WEEK_SOURCES_FILE), JSON.stringify(sources, null, 2), "utf8");
+}
+
+export async function sourceIdForWeek(week: number): Promise<string> {
+  const registered = (await readWeekSources())[String(week)];
+  return registered ?? videoIdForWeek(week);
+}
 
 export function cacheDir(videoId: string): string {
   return join(PATHS.cache, videoId);

@@ -34,8 +34,8 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 | Layer | Choice | Note |
 |---|---|---|
 | Pipeline | TypeScript CLI, `tsx`, `commander` | Runs on your laptop. One user: you. |
-| Audio fetch | `yt-dlp` then `ffmpeg` to 16kHz mono | Talks only; nothing recorded by hand. |
-| Transcription | YouTube auto-captions via `yt-dlp --write-auto-subs` | Free, already timestamped, no API key. Costs diarization and keyterm boosting — see §5. Reversible: the `transcribe` stage keeps a provider seam. |
+| Source ingest | `yt-dlp` captions or local media | YouTube inputs cache timed captions. Local files remain in place and receive a stable content-hash ID. |
+| Transcription | YouTube auto-captions or Deepgram prerecorded STT | URLs use free, timestamped captions. Local Voice Memos files use Deepgram Nova with glossary keyterms and diarization, then enter the identical transcript schema. |
 | Slide text | `unpdf` | Text PDFs. Falls back to a vision pass only if a specific deck is image-only. |
 | LLM | Headless Codex (`codex exec`), GPT-5.6 Luna | Reuses Codex CLI authentication. `LLM_PROVIDER=claude` remains an explicit compatibility mode. Effort per stage (§5). |
 | Schema/validation | `zod` | One schema file shared by pipeline and site. This is the §9 data contract, in code. |
@@ -72,8 +72,9 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 
 - [x] Repo scaffold: pnpm workspace, the four packages above, `tsconfig`, `.env.example`.
 - [x] LLM adapter (`llm.ts`) over headless Codex, defaulting to GPT-5.6 Luna, with zod validation and one retry. Verified live: clean JSON, verbatim evidence spans, and correct stance classification. Claude remains opt-in.
-- [x] `brief fetch <url>` pulls auto-captions and audio via `yt-dlp`, caching by video id.
+- [x] `brief fetch <source>` pulls YouTube auto-captions or ingests local media metadata, caching by stable source id.
 - [x] `brief transcribe` normalizes captions into the transcript shape — timestamps preserved, `speaker: "unclear"`. Output cached. **Re-running must never re-fetch.**
+- [x] Local Voice Memos ingestion (`.m4a`, plus common audio/video containers): content-hash identity, ffprobe metadata, cached Deepgram response, timestamped transcript, and provider speaker labels without guessing instructor/student roles.
 - [x] Read the raw transcript for the DNS talk and judge jargon quality against the `syllabus.md` glossary. If terms are mangled beyond what the correction pass can fix, record that and reconsider paid STT.
 
 *Gate: one full talk transcribed and cached, with timestamps and speaker labels.*
@@ -158,7 +159,7 @@ Everything else — the grounding contract, the three-way slide comparison, the 
 ## 4. Acceptance criteria
 
 Pipeline and grounding:
-- [ ] `brief process` runs end to end on one talk without manual intervention
+- [x] `brief process` runs end to end on one talk without manual intervention; accepts a YouTube URL/id or local media and a local/remote slide deck
 - [x] `brief extract` re-runs from cache in under 60 seconds
 - [x] Every published `evidence` span is an exact substring of the corrected transcript (tested)
 - [x] No insight contains a proper noun, number, or date absent from its evidence span (20 hand-checked)
@@ -200,7 +201,7 @@ The last two are the only ones that measure whether the product works. The rest 
 
 **Headless calls are isolated generation functions.** Codex runs with `--ephemeral`, `--ignore-user-config`, `--ignore-rules`, and a read-only sandbox from the system temp directory. This keeps repository instructions, user settings, tools, and rollout files out of extraction context. The model receives only the versioned function contract and the delimited input on stdin; stdout contains only the final JSON response.
 
-**Transcription is free** (YouTube auto-captions), which removes the only non-token line item and the entire provider bake-off. What it costs is diarization and keyterm boosting. Diarization: AD-2 already permits `speaker: "unclear"` as the default. Keyterm boosting: the correction pass exists precisely to catch jargon, and the glossary in `syllabus.md` feeds it. **Watch for this in the first real output** — if course terms are mangled badly enough that correction can't recover them, that is the finding, and paid STT with keyterm boosting is the fix.
+**YouTube transcription is free** through auto-captions. Local Voice Memos recordings use paid Deepgram prerecorded STT with Nova, glossary keyterms, utterance timestamps, and diarization. The raw provider response and normalized transcript are cached under a content-hash source ID, so downstream retries never pay to transcribe again. Provider speaker numbers are retained, but remain `speaker: "unclear"` until a role can be established instead of guessing that speaker 0 is the instructor.
 
 **Guardrail:** if any stage exceeds ten times its expected token count, fail loudly. A looping prompt bug is the realistic way this gets expensive — in subscription usage rather than dollars, but expensive either way.
 

@@ -11,6 +11,12 @@ export const SourceMeta = z.object({
   title: z.string(),
   durationSec: z.number(),
   fetchedAt: z.string(),
+  /** Defaults keep pre-local-file cache entries readable. */
+  sourceType: z.enum(["youtube", "local"]).default("youtube"),
+  localPath: z.string().optional(),
+  contentHash: z.string().optional(),
+  recordedAt: z.string().optional(),
+  contentType: z.string().optional(),
 });
 export type SourceMeta = z.infer<typeof SourceMeta>;
 
@@ -24,6 +30,8 @@ export const Segment = z.object({
    * "unclear" rather than guessing "instructor".
    */
   speaker: z.enum(["instructor", "student", "unclear"]).default("unclear"),
+  /** Provider diarization label; it is not guessed into a semantic role. */
+  speakerId: z.number().int().nonnegative().optional(),
 });
 export type Segment = z.infer<typeof Segment>;
 

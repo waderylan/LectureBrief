@@ -11,7 +11,7 @@
 
 import "dotenv/config";
 import { Command } from "commander";
-import { PRODUCT_NAME, videoIdForWeek } from "./config.js";
+import { PRODUCT_NAME } from "./config.js";
 import * as fetchStage from "./stages/fetch.js";
 import * as transcribeStage from "./stages/transcribe.js";
 import * as correctStage from "./stages/correct.js";
@@ -22,7 +22,8 @@ import * as extractStage from "./stages/extract.js";
 import * as verifyStage from "./stages/verify.js";
 import * as assembleStage from "./stages/assemble.js";
 import * as publishStage from "./stages/publish.js";
-import { readCache } from "./cache.js";
+import * as processStage from "./stages/process.js";
+import { readCache, sourceIdForWeek } from "./cache.js";
 import { loadAssignments } from "./glossary.js";
 import { SourceMeta } from "./types.js";
 
@@ -33,15 +34,16 @@ program
   .description(`${PRODUCT_NAME} pipeline — one lecture at a time`)
   .version("0.0.0");
 
-const todo = (stage: string) => () => {
-  console.error(`${stage}: not implemented`);
-  process.exitCode = 1;
-};
+async function sourceIdFromInput(input: string): Promise<string> {
+  if (fetchStage.isLocalSource(input)) return (await fetchStage.run(input)).videoId;
+  if (/^local-[a-f0-9]{20}$/.test(input)) return input;
+  return fetchStage.parseVideoId(input);
+}
 
 program
   .command("fetch")
-  .argument("<url>", "talk URL or video id")
-  .description("download auto-captions and metadata")
+  .argument("<source>", "YouTube URL/video id or local Voice Memos media file")
+  .description("ingest captions or local media metadata")
   .option("--force", "ignore cache")
   .action(async (url: string, o: { force?: boolean }) => {
     const meta = await fetchStage.run(url, o);
@@ -50,11 +52,11 @@ program
 
 program
   .command("transcribe")
-  .argument("<url>", "talk URL or video id")
-  .description("normalize captions into the transcript shape")
+  .argument("<source>", "YouTube URL/video id or ingested local media file")
+  .description("normalize captions or transcribe local media")
   .option("--force", "ignore cache")
   .action(async (url: string, o: { force?: boolean }) => {
-    const videoId = fetchStage.parseVideoId(url);
+    const videoId = await sourceIdFromInput(url);
     const source = await readCache(videoId, "source", SourceMeta);
     const { data, fromCache } = await transcribeStage.run(videoId, source, o);
     console.log(
@@ -64,11 +66,11 @@ program
 
 program
   .command("correct")
-  .argument("<url>", "talk URL or video id")
+  .argument("<source>", "YouTube URL/video id or ingested local media file")
   .description("glossary term substitution, non-destructive")
   .option("--force", "ignore cache")
   .action(async (url: string, o: { force?: boolean }) => {
-    const videoId = fetchStage.parseVideoId(url);
+    const videoId = await sourceIdFromInput(url);
     const source = await readCache(videoId, "source", SourceMeta);
     const { data: tr } = await transcribeStage.run(videoId, source);
     const { data, fromCache } = await correctStage.run(videoId, tr, o);
@@ -99,11 +101,11 @@ async function pipelineToPunctuated(videoId: string, force?: boolean) {
 
 program
   .command("redact")
-  .argument("<url>", "talk URL or video id")
+  .argument("<source>", "YouTube URL/video id or ingested local media file")
   .description("apply redactions/<videoId>.yml before anything downstream sees the text")
   .option("--force", "ignore cache")
   .action(async (url: string, o: { force?: boolean }) => {
-    const videoId = fetchStage.parseVideoId(url);
+    const videoId = await sourceIdFromInput(url);
     const { red } = await pipelineTo(videoId, o.force);
     console.log(
       `${videoId}  ${red.removedSegments} segments dropped  ${red.removedStrings} strings removed  ${red.segments.length} segments remain`,
@@ -112,11 +114,11 @@ program
 
 program
   .command("punctuate")
-  .argument("<url>", "talk URL or video id")
+  .argument("<source>", "YouTube URL/video id or ingested local media file")
   .description("insert sentence punctuation, guarded by a word-sequence invariant")
   .option("--force", "ignore cache")
   .action(async (url: string, o: { force?: boolean }) => {
-    const videoId = fetchStage.parseVideoId(url);
+    const videoId = await sourceIdFromInput(url);
     const { punct: data, fromCache } = await pipelineToPunctuated(videoId, o.force);
     console.log(
       `${videoId}  ${data.spansTotal} spans  ${data.spansCachedHit} from span-cache  ${data.wordsKept} punctuated  ${data.wordsRestored} restored  ${data.spansErrored} errored${fromCache ? "  (stage cached)" : ""}`,
@@ -128,9 +130,10 @@ program
   .argument("<week>", "week number")
   .description("extract slide deck text via unpdf")
   .option("--force", "ignore cache")
-  .action(async (weekArg: string, o: { force?: boolean }) => {
+  .option("--source <pdf-or-url>", "local PDF or remote deck URL")
+  .action(async (weekArg: string, o: { force?: boolean; source?: string }) => {
     const week = Number(weekArg);
-    const videoId = videoIdForWeek(week);
+    const videoId = await sourceIdForWeek(week);
     const { data, fromCache } = await slidesStage.run(videoId, o);
     console.log(
       `week ${week} (${videoId})  ${data.pageCount} pages  ${data.text.length} chars${fromCache ? "  (cached)" : "  (fresh)"}`,
@@ -144,7 +147,7 @@ program
   .option("--force", "ignore cache")
   .action(async (weekArg: string, o: { force?: boolean }) => {
     const week = Number(weekArg);
-    const videoId = videoIdForWeek(week);
+    const videoId = await sourceIdForWeek(week);
     const { punct } = await pipelineToPunctuated(videoId);
     const { data: slides } = await slidesStage.run(videoId);
     const exclusions = await loadAssignments();
@@ -167,7 +170,7 @@ program
   .option("--force", "ignore cache")
   .action(async (weekArg: string, o: { force?: boolean }) => {
     const week = Number(weekArg);
-    const videoId = videoIdForWeek(week);
+    const videoId = await sourceIdForWeek(week);
     const { data, fromCache } = await verifyStage.run(videoId, { force: o.force });
     console.log(
       `week ${week} (${videoId})  ${1 + data.insights.length} insights survive verification  ${data.droppedForUnsupported} dropped as unsupported${fromCache ? "  (already verified)" : ""}`,
@@ -188,7 +191,7 @@ program
       process.exitCode = 1;
       return;
     }
-    const videoId = videoIdForWeek(week);
+    const videoId = await sourceIdForWeek(week);
     const { data, path } = await assembleStage.run(videoId, week, { title: o.title, date: o.date });
     console.log(
       `wrote ${path}  lead + ${data.insights.length} insights  ${data.build_ideas.length} build ideas  ${data.agent_prompts.length} agent prompts  status=${data.status}`,
@@ -211,10 +214,24 @@ program
 
 program
   .command("process")
-  .argument("<url>", "talk URL")
-  .requiredOption("--slides <pdf>", "path to the slide deck")
+  .argument("<source>", "YouTube URL/video id or local Voice Memos media file")
+  .requiredOption("--slides <pdf-or-url>", "local PDF or remote slide-deck URL")
   .requiredOption("--week <n>", "week number")
-  .description("run every stage end to end")
-  .action(todo("process"));
+  .option("--title <title>", "human-written lecture title; defaults to source title")
+  .option("--date <yyyy-mm-dd>", "lecture date; defaults to local file date or today")
+  .option("--force", "re-run cached stages, including paid transcription")
+  .description("run every stage end to end and write a reviewable draft")
+  .action(async (source: string, o: { slides: string; week: string; title?: string; date?: string; force?: boolean }) => {
+    const result = await processStage.run(source, {
+      slides: o.slides,
+      week: Number(o.week),
+      title: o.title,
+      date: o.date,
+      force: o.force,
+      onStage: (stage) => console.log(`[${stage}]`),
+    });
+    console.log(`wrote ${result.path}  status=${result.data.status}`);
+    console.log("Review the draft, test every prompt, then promote and approve it manually. Nothing was published.");
+  });
 
 program.parse();
